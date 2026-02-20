@@ -1,0 +1,56 @@
+# AI配音系统 - 完整依赖
+# 安装: pip install -r requirements.txt
+
+# 核心框架
+torch>=2.0.0
+torchaudio>=2.0.0
+torchvision>=0.15.0
+
+# 音频处理
+soundfile>=0.12.0
+librosa>=0.10.0
+pydub>=0.25.0
+audioread>=3.0.0
+
+# 科学计算
+numpy>=1.24.0
+scipy>=1.10.0
+
+# 系统监控
+psutil>=5.9.0
+
+# AI模型 - ASR
+openai-whisper>=20231117
+
+# AI模型 - 翻译
+transformers>=4.30.0
+sentencepiece>=0.1.99
+sacremoses>=0.0.53
+
+# AI模型 - TTS (选择一个)
+# 方式1: Coqui TTS
+TTS>=0.22.0
+# 方式2: Qwen3-TTS (推荐，用于中文)
+# pip install qwen-tts
+# 或
+# pip install git+https://github.com/QwenLM/Qwen3-TTS.git
+
+# AI模型 - 人声分离
+demucs>=4.0.0
+einops>=0.6.1
+
+# 工具库
+tqdm>=4.65.0
+click>=8.1.0
+pyyaml>=6.0
+requests>=2.31.0
+
+# 数据处理
+pandas>=2.0.0
+matplotlib>=3.7.0
+
+# 可选: GPU监控
+# nvidia-ml-py3>=7.352.0; platform_system!="Darwin"
+
+# Windows平台可能需要
+# pywin32>=306; platform_system=="Windows"

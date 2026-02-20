@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Linter cache
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Output files - allow demo output
+logs/
+output/*/
+!output/gdot_En_zh_dubbed/
+
+# Model cache (usually stored in ~/.cache/)
+models/
+
+# Data files (user videos) - allow demo video
+data/*.wav
+data/*.mp3
+!data/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE and cache
+.opencode/
+.ruff_cache/

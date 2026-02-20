@@ -1,0 +1,624 @@
+1
+00:00:00,000 --> 00:00:06,240
+First off, thank you for the incredible support on my last video.
+
+2
+00:00:06,240 --> 00:00:08,640
+As we all know, things stay time.
+
+3
+00:00:08,640 --> 00:00:13,880
+So today, I want to save you some time and jumpstart your cadeau journey with the lessons
+
+4
+00:00:13,880 --> 00:00:16,280
+I wish I knew when I first started.
+
+5
+00:00:16,280 --> 00:00:21,600
+If I could go back and just tell myself 10 things about cadeau, I would have saved myself
+
+6
+00:00:21,600 --> 00:00:25,359
+dozens of broken projects and a whole lot of frustration.
+
+7
+00:00:25,359 --> 00:00:30,559
+So today, I'm giving you everything I wish I knew before you even opened your door.
+
+8
+00:00:30,559 --> 00:00:35,200
+I've been using the cadeau engine for more than 5 years now and I've watched it grow
+
+9
+00:00:35,200 --> 00:00:38,159
+from a niche tool into a powerhouse engine.
+
+10
+00:00:38,159 --> 00:00:43,799
+Even a huge game like Battlefield 6 uses it as the technology behind the community map
+
+11
+00:00:43,799 --> 00:00:48,679
+editor and the portal creation toolkit that comes with the game as a level editor.
+
+12
+00:00:48,679 --> 00:00:53,519
+But when I first started, I had no idea what I was doing and honestly, the things I'm
+
+13
+00:00:53,520 --> 00:00:57,120
+about to share with you would have sped up my learning by months.
+
+14
+00:00:57,120 --> 00:01:02,800
+So whether you're brand new or just getting serious about cadeau in 2026, this video is
+
+15
+00:01:02,800 --> 00:01:03,800
+for you.
+
+16
+00:01:03,800 --> 00:01:08,439
+But before you even open your first cadeau project, let's talk about the biggest decision
+
+17
+00:01:08,439 --> 00:01:10,960
+every beginner struggles with.
+
+18
+00:01:10,960 --> 00:01:16,879
+New devs always ask the same question, should I jump straight into the engine or do I need
+
+19
+00:01:16,879 --> 00:01:18,400
+to learn programming first?
+
+20
+00:01:18,400 --> 00:01:22,879
+And here's the truth, if you already understand the basics of programming like what are
+
+21
+00:01:22,879 --> 00:01:27,839
+variables, functions and loops, then yes, absolutely jump into cadeau.
+
+22
+00:01:27,839 --> 00:01:33,439
+In fact, cadeau is designed to teach you as you build, but there's one thing you absolutely
+
+23
+00:01:33,439 --> 00:01:37,119
+must do first, get familiar with the cadeau docs.
+
+24
+00:01:37,119 --> 00:01:42,599
+No really, hear me out, I know this seems boring, but go through the getting started section
+
+25
+00:01:42,599 --> 00:01:44,959
+in the official cadeau documentation.
+
+26
+00:01:44,959 --> 00:01:50,439
+It's short, simple and teaches you the exact fundamentals cadeau expects you to know.
+
+27
+00:01:50,439 --> 00:01:52,599
+And make sure you do the example project.
+
+28
+00:01:52,599 --> 00:01:57,479
+Your first 2D game, if you're brand new to programming, then I suggest learning the basics
+
+29
+00:01:57,479 --> 00:01:58,479
+first.
+
+30
+00:01:58,479 --> 00:02:04,000
+They're not a sponsor, but honestly, GD Quest has one of the best beginner friendly foundations
+
+31
+00:02:04,000 --> 00:02:05,000
+out there.
+
+32
+00:02:05,000 --> 00:02:09,959
+The learn GD script from zero course, it's free, it's clean, it's simple and made for
+
+33
+00:02:09,959 --> 00:02:11,359
+total beginners.
+
+34
+00:02:11,359 --> 00:02:16,359
+Now once you're comfortable inside the editor, there's one habit that can save your future
+
+35
+00:02:16,359 --> 00:02:18,159
+self so much pain.
+
+36
+00:02:18,159 --> 00:02:20,560
+Let's talk about that next.
+
+37
+00:02:20,560 --> 00:02:25,759
+One of the biggest mistakes I made when I just started out was writing code that only
+
+38
+00:02:25,759 --> 00:02:31,759
+I could understand and trust me, if you do this in 6 months, you won't understand it either.
+
+39
+00:02:31,759 --> 00:02:34,759
+To avoid that, always write readable code.
+
+40
+00:02:34,759 --> 00:02:39,240
+Use clear variable names like player speed and not PS1.
+
+41
+00:02:39,240 --> 00:02:44,840
+Use descriptive function names like player movement instead of just movement and break
+
+42
+00:02:44,840 --> 00:02:48,920
+big functions into smaller single purpose ones where practical.
+
+43
+00:02:48,919 --> 00:02:54,679
+Your goal is simple, write code today that future you can understand instantly because
+
+44
+00:02:54,679 --> 00:03:00,560
+readable code makes debugging so much easier, but even clean code won't help you if you
+
+45
+00:03:00,560 --> 00:03:02,679
+don't know where to find answers.
+
+46
+00:03:02,679 --> 00:03:09,000
+And GDOS has a massively underrated resource.
+
+47
+00:03:09,000 --> 00:03:12,959
+One of the best habits you can learn early is static typing.
+
+48
+00:03:12,959 --> 00:03:17,639
+This means telling GDOS what type of data a variable should have.
+
+49
+00:03:17,639 --> 00:03:23,159
+Just like this, bar speed colon float equals 200.0.
+
+50
+00:03:23,159 --> 00:03:26,319
+Instead of bar speed equal 200.0.
+
+51
+00:03:26,319 --> 00:03:27,559
+Why this is matter?
+
+52
+00:03:27,559 --> 00:03:31,279
+Because GDOS will warn you about errors before you run the game.
+
+53
+00:03:31,279 --> 00:03:37,000
+It catches type mismatches, wrong arguments and a ton of subtle bugs you don't want to
+
+54
+00:03:37,000 --> 00:03:38,239
+deal with later.
+
+55
+00:03:38,239 --> 00:03:41,719
+And here two more best practices every beginner should know.
+
+56
+00:03:41,719 --> 00:03:46,159
+Don't put heavy logic in the process and physics process function.
+
+57
+00:03:46,159 --> 00:03:51,359
+If something doesn't need to run every frame, don't put it in process or physics process
+
+58
+00:03:51,359 --> 00:03:53,599
+that really slows things down.
+
+59
+00:03:53,599 --> 00:03:55,439
+And can make debugging messy.
+
+60
+00:03:55,439 --> 00:03:58,719
+Don't create super deep node hierarchies.
+
+61
+00:03:58,719 --> 00:04:02,560
+Keep your scenes organized by grouping related things together.
+
+62
+00:04:02,560 --> 00:04:06,639
+The node tree is your architecture so use it wisely.
+
+63
+00:04:06,639 --> 00:04:12,120
+And if you ever want the official full list of best practices, here it is.
+
+64
+00:04:12,120 --> 00:04:14,960
+Alright, now let's get into the fun part.
+
+65
+00:04:14,960 --> 00:04:20,480
+These are 10 workflow shortcuts that completely changed how enjoyable GDOS is for me.
+
+66
+00:04:20,480 --> 00:04:23,040
+Even if some of these don't make sense yet.
+
+67
+00:04:23,040 --> 00:04:26,600
+Just take notes and keep them in mind as you do your research.
+
+68
+00:04:26,600 --> 00:04:31,040
+Trust me, learning these will save you hours or even days later.
+
+69
+00:04:31,040 --> 00:04:32,040
+Tip 1.
+
+70
+00:04:32,040 --> 00:04:33,680
+Learn signals early.
+
+71
+00:04:33,680 --> 00:04:35,519
+Signals are everywhere in GDOS.
+
+72
+00:04:35,519 --> 00:04:38,680
+And one of the reasons the engine is so flexible.
+
+73
+00:04:38,680 --> 00:04:40,400
+Learn how to use them early.
+
+74
+00:04:40,400 --> 00:04:42,759
+This will make your life so much easier.
+
+75
+00:04:42,759 --> 00:04:46,839
+I personally wish I had spent more time on this when I first started.
+
+76
+00:04:46,839 --> 00:04:47,839
+Tip 2.
+
+77
+00:04:47,839 --> 00:04:51,399
+Use separate scenes for reusable elements.
+
+78
+00:04:51,399 --> 00:04:56,000
+Things like help bars, enemy bullets, or even a UI panel.
+
+79
+00:04:56,000 --> 00:04:58,360
+Make each of these its own scene.
+
+80
+00:04:58,360 --> 00:05:02,879
+That way you can reuse it anywhere in your project without having to rebuild it every
+
+81
+00:05:02,879 --> 00:05:03,879
+time.
+
+82
+00:05:03,879 --> 00:05:04,879
+Tip 3.
+
+83
+00:05:04,879 --> 00:05:06,959
+Make Duplicated Nodes Unique.
+
+84
+00:05:06,959 --> 00:05:10,839
+Whenever you duplicate a node, use the Make Unique option.
+
+85
+00:05:10,839 --> 00:05:17,319
+If you don't, resources like collision shapes or scripts might be shared between nodes.
+
+86
+00:05:17,319 --> 00:05:19,919
+And that can lead to really tricky bugs.
+
+87
+00:05:19,919 --> 00:05:23,159
+Taking the simple steps saves so much headache.
+
+88
+00:05:23,159 --> 00:05:24,159
+Tip 4.
+
+89
+00:05:24,159 --> 00:05:25,479
+Keep Scenes Modular.
+
+90
+00:05:25,479 --> 00:05:29,279
+Try to build small chunks instead of one giant scene.
+
+91
+00:05:29,279 --> 00:05:33,599
+Modular scenes makes your game easier to manage, debug, and expand later.
+
+92
+00:05:33,599 --> 00:05:35,319
+I learned this the hard way.
+
+93
+00:05:35,319 --> 00:05:38,319
+After making one too many massive messy scenes.
+
+94
+00:05:38,319 --> 00:05:39,319
+Tip 5.
+
+95
+00:05:39,319 --> 00:05:41,599
+Reuse Functions Across Scripts.
+
+96
+00:05:41,599 --> 00:05:47,560
+Whenever you have logics that is used more than once, put it in a helper script.
+
+97
+00:05:47,560 --> 00:05:51,560
+Reusing Functions This way keeps your code cleaner and prevents you
+
+98
+00:05:51,560 --> 00:05:54,639
+from rewriting the same logic over and over.
+
+99
+00:05:54,639 --> 00:05:55,639
+Tip 6.
+
+100
+00:05:55,639 --> 00:05:56,959
+Learn Autolodes.
+
+101
+00:05:56,959 --> 00:05:58,439
+The Singleton Pattern.
+
+102
+00:05:58,439 --> 00:06:04,519
+Autolodes are perfect for global systems like scores, audio managers, or save data.
+
+103
+00:06:04,519 --> 00:06:08,560
+Once you get comfortable with them, you'll wonder how you ever lived without them.
+
+104
+00:06:08,560 --> 00:06:09,560
+Tip 7.
+
+105
+00:06:09,560 --> 00:06:11,120
+Use Node Groups.
+
+106
+00:06:11,120 --> 00:06:13,799
+Groups let you target multiple nodes at once.
+
+107
+00:06:13,799 --> 00:06:17,759
+For example, you can target all doors or all ladders.
+
+108
+00:06:17,759 --> 00:06:21,519
+Then you can send a single command and affect everything in that group.
+
+109
+00:06:21,519 --> 00:06:23,039
+It's a huge time saver.
+
+110
+00:06:23,039 --> 00:06:24,039
+Tip 8.
+
+111
+00:06:24,039 --> 00:06:27,039
+Master the Animation Player node early.
+
+112
+00:06:27,039 --> 00:06:30,479
+Animation Player is not just for fancy animations.
+
+113
+00:06:30,480 --> 00:06:36,720
+It can control UI transitions, effects, and even gameplay sequences.
+
+114
+00:06:36,720 --> 00:06:40,960
+Once you understand it, it's one of the most powerful tools in Kado.
+
+115
+00:06:40,960 --> 00:06:41,960
+Tip 9.
+
+116
+00:06:41,960 --> 00:06:44,080
+Turn on Debug Options.
+
+117
+00:06:44,080 --> 00:06:51,319
+Things like collision shapes, navigation, measures, and physics debugging are life savers.
+
+118
+00:06:51,319 --> 00:06:56,520
+I've spent hours hunting down bugs that I could have seen immediately by enabling these
+
+119
+00:06:56,520 --> 00:06:58,200
+options early on.
+
+120
+00:06:58,199 --> 00:06:59,199
+Tip 10.
+
+121
+00:06:59,199 --> 00:07:01,560
+Use De Debugger and Profiler.
+
+122
+00:07:01,560 --> 00:07:07,199
+The Debugger and Profiler are there to catch problems before they even become nightmares.
+
+123
+00:07:07,199 --> 00:07:12,399
+Most beginners don't even touch them, but I promise if you start using them, it will
+
+124
+00:07:12,399 --> 00:07:15,279
+save you hours of trial and error.
+
+125
+00:07:15,279 --> 00:07:20,639
+And after all these steps, here's something everyone thinking about learning the dough and
+
+126
+00:07:20,639 --> 00:07:24,519
+game development in general should know.
+
+127
+00:07:24,519 --> 00:07:26,599
+Now I have to be straight here.
+
+128
+00:07:26,600 --> 00:07:29,520
+Game development is just like any other skill.
+
+129
+00:07:29,520 --> 00:07:33,640
+When you start, you don't know what you're doing, you don't know the techniques.
+
+130
+00:07:33,640 --> 00:07:34,640
+And you know what?
+
+131
+00:07:34,640 --> 00:07:35,640
+That's okay.
+
+132
+00:07:35,640 --> 00:07:37,160
+The dough is improving fast.
+
+133
+00:07:37,160 --> 00:07:42,480
+Version 4.6 is already out, but don't wait for the perfect version.
+
+134
+00:07:42,480 --> 00:07:46,400
+If you keep waiting for the next big release, then you know what?
+
+135
+00:07:46,400 --> 00:07:47,400
+You'll never start.
+
+136
+00:07:47,400 --> 00:07:51,840
+The fastest way to learn is to start building small projects.
+
+137
+00:07:51,840 --> 00:07:54,040
+Now, not your dream RPG.
+
+138
+00:07:54,040 --> 00:07:55,040
+Make a platformer.
+
+139
+00:07:55,040 --> 00:07:56,040
+It's up down shooter.
+
+140
+00:07:56,280 --> 00:07:59,879
+A simple physics game or even a UI prototype.
+
+141
+00:07:59,879 --> 00:08:02,920
+Each small project teaches you something new.
+
+142
+00:08:02,920 --> 00:08:04,080
+That's how you level up.
+
+143
+00:08:04,080 --> 00:08:07,360
+And if you ever feel stuck, here's what you should do next.
+
+144
+00:08:07,360 --> 00:08:11,480
+Follow these tips, subscribe and join in the discussion.
+
+145
+00:08:11,480 --> 00:08:14,360
+That's how you can jumpstart your journey with Gadoo.
+
+146
+00:08:14,360 --> 00:08:18,759
+If you like the video, smash that like button so the video reaches more people that may
+
+147
+00:08:18,759 --> 00:08:19,759
+need it.
+
+148
+00:08:19,759 --> 00:08:21,240
+And I also want to hear from you.
+
+149
+00:08:21,240 --> 00:08:25,600
+Are you already using Gadoo or experimenting with AI in your workflow?
+
+150
+00:08:25,600 --> 00:08:27,400
+Drop a comment below and let's talk.
+
+151
+00:08:27,400 --> 00:08:31,879
+I'll be checking the comments regularly and I read every single one and get back to
+
+152
+00:08:31,879 --> 00:08:32,879
+you.
+
+153
+00:08:32,879 --> 00:08:34,360
+Until next time, thanks for watching.
+
+154
+00:08:34,360 --> 00:08:35,360
+Happy coding.
+
+155
+00:08:35,360 --> 00:08:38,120
+Keep experimenting and I'll see you in the comments.
+
+156
+00:08:38,120 --> 00:08:40,000
+This has been The Raku Games.
+
