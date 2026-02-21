@@ -456,7 +456,7 @@ def cmd_asr(args):
 
 def cmd_translate(args):
     """文本/字幕翻译"""
-    from src.translator_high_quality import get_translator as get_translator_hq
+    from src.translator_m2m100 import M2M100Translator
     from src.subtitle_handler import SRTHandler
     from src.config import OUTPUT_DIR
 
@@ -479,22 +479,23 @@ def cmd_translate(args):
     print(f"翻译: {input_path.name}")
     print(f"  {args.source} -> {args.target}")
     print(f"  设备: {device}")
-    print(f"  模型: NLLB-200 (高质量)")
+    print(f"  模型: M2M100")
 
-    # 使用高质量翻译器
-    translator = get_translator_hq(
-        source_lang=args.source,
-        target_lang=args.target,
-        model_type="nllb",
-        model_size=args.model if args.model in ["small", "base", "large"] else "base",
+    # 使用M2M100翻译器
+    translator = M2M100Translator(
+        source_language=args.source,
+        target_language=args.target,
         device=device,
+        model_size="418M",  # 使用418M模型，平衡速度和质量
     )
     translator.load_model()
 
     if input_path.suffix.lower() == ".srt":
         # 翻译SRT字幕
         entries = SRTHandler.parse(input_path)
-        translator.translate_segments(entries, batch_size=8)
+        for entry in entries:
+            if entry.text:
+                entry.translated_text = translator.translate(entry.text)
         output_path = output_dir / f"{input_path.stem}_{args.target}.srt"
         SRTHandler.write(entries, output_path, use_translated=True)
     else:
@@ -502,7 +503,7 @@ def cmd_translate(args):
         with open(input_path, "r", encoding="utf-8") as f:
             texts = [line.strip() for line in f if line.strip()]
 
-        translated = translator.batch_translate(texts)
+        translated = [translator.translate(text) for text in texts]
         output_path = output_dir / f"{input_path.stem}_{args.target}.txt"
         with open(output_path, "w", encoding="utf-8") as f:
             for text in translated:
@@ -625,7 +626,7 @@ def cmd_dub(args):
     from src.extractor import AudioExtractor
     from src.separator import VocalSeparator
     from src.asr_module import WhisperASR
-    from src.translator_high_quality import get_translator as get_translator_hq
+    from src.translator_m2m100 import M2M100Translator
     from src.tts_qwen3 import Qwen3TTS, get_qwen3_tts
     from src.merger import AudioMerger
     from src.video_processor import VideoProcessor
@@ -747,7 +748,7 @@ def cmd_dub(args):
     # ==================== 步骤3: 翻译 ====================
     step_start = time.time()
     print("\n[3/6] 翻译...")
-    print(f"  模型: NLLB-200 (高质量翻译)")
+    print(f"  模型: M2M100-418M")
     print(f"  批处理大小: {config.translator_batch_size}")
     print(f"  设备: {config.device}")
 
@@ -759,19 +760,19 @@ def cmd_dub(args):
             print(f"  显存不足 ({free_mem:.1f}GB)，翻译使用CPU")
             trans_device = "cpu"
 
-    # 使用高质量翻译器 (NLLB-200)
-    translator = get_translator_hq(
-        source_lang="en",
-        target_lang="zh",
-        model_type="nllb",
-        model_size="base",  # 使用1.3B模型，平衡质量和速度
+    # 使用M2M100翻译器
+    translator = M2M100Translator(
+        source_language="en",
+        target_language="zh",
         device=trans_device,
+        model_size="418M",  # 使用418M模型，平衡质量和速度
     )
     translator.load_model()
 
-    translator.translate_segments(
-        subtitle_entries, batch_size=config.translator_batch_size
-    )
+    # 翻译每个字幕条目
+    for entry in subtitle_entries:
+        if entry.text:
+            entry.translated_text = translator.translate(entry.text)
 
     SRTHandler.write(subtitle_entries, output_dir / "chinese.srt", use_translated=True)
 
