@@ -76,24 +76,24 @@ class ParallelConfig:
     max_workers: int = 4
     batch_size: int = 8
 
-    # ASR配置 - 使用large模型提升识别质量
-    asr_model_size: str = "large"
+    # ASR配置 - 使用large-v3最高质量模型
+    asr_model_size: str = "large-v3"
     asr_batch_size: int = 1
-    asr_parallel_segments: int = 2
+    asr_parallel_segments: int = 1  # 串行处理确保质量
 
     # 翻译配置 - 使用1.2B大模型提升翻译质量
     translator_model_size: str = "1.2B"
-    translator_batch_size: int = 8
-    translator_max_workers: int = 2
+    translator_batch_size: int = 4  # 减小batch确保质量
+    translator_max_workers: int = 1  # 串行处理确保质量
 
-    # TTS配置 - 使用1.7B大模型提升合成质量
+    # TTS配置 - 使用1.7B大模型+高质量音色克隆
     tts_model_size: str = "1.7B"
     tts_max_workers: int = 1  # 强制串行避免显存冲突
     tts_batch_size: int = 1
 
-    # 人声分离配置
-    separator_model: str = "htdemucs"
-    separator_device: str = "cpu"
+    # 人声分离配置 - 使用htdemucs_ft最高质量
+    separator_model: str = "htdemucs_ft"
+    separator_device: str = "cuda"
 
     # 设备配置
     device: str = "cpu"
@@ -284,29 +284,29 @@ class PerformanceConfig:
     def _configure_ultra(
         self, info: SystemInfo, config: ParallelConfig
     ) -> ParallelConfig:
-        """高端配置 (>32GB RAM, 高端GPU, 显存>=8GB)"""
+        """高端配置 (>32GB RAM, 高端GPU, 显存>=8GB) - 最高质量"""
         # 基础并行
-        config.max_workers = min(info.cpu_count, 16)
-        config.batch_size = 32
+        config.max_workers = min(info.cpu_count, 8)
+        config.batch_size = 16
 
-        # ASR - 使用大模型
-        config.asr_model_size = "large" if info.has_gpu else "medium"
-        config.asr_batch_size = 4
-        config.asr_parallel_segments = min(info.cpu_count, 8)
+        # ASR - 使用最高质量large-v3模型
+        config.asr_model_size = "large-v3"
+        config.asr_batch_size = 1
+        config.asr_parallel_segments = 1  # 串行确保质量
 
-        # 翻译 - 使用大模型
+        # 翻译 - 使用1.2B大模型，小batch确保质量
         config.translator_model_size = "1.2B"
-        config.translator_batch_size = 32
-        config.translator_max_workers = min(info.cpu_count // 2, 8)
+        config.translator_batch_size = 4
+        config.translator_max_workers = 1  # 串行确保质量
 
-        # TTS - 使用大模型，但GPU模式下强制串行
+        # TTS - 使用1.7B大模型+高质量音色克隆
         config.tts_model_size = "1.7B"
-        config.tts_max_workers = 1  # GPU模式强制串行
+        config.tts_max_workers = 1  # 强制串行
         config.tts_batch_size = 1
 
-        # 分离
-        config.separator_model = "htdemucs"
-        config.separator_device = config.device
+        # 分离 - 使用htdemucs_ft最高质量
+        config.separator_model = "htdemucs_ft"
+        config.separator_device = "cuda"
 
         # 显存安全阈值
         config.gpu_memory_safe_threshold = 4.0
@@ -316,27 +316,28 @@ class PerformanceConfig:
     def _configure_high(
         self, info: SystemInfo, config: ParallelConfig
     ) -> ParallelConfig:
-        """高配置 (16-32GB RAM, 有GPU, 显存>=8GB)"""
-        config.max_workers = min(info.cpu_count, 8)
-        config.batch_size = 16
+        """高配置 (16-32GB RAM, 有GPU, 显存>=8GB) - 高质量"""
+        config.max_workers = min(info.cpu_count, 6)
+        config.batch_size = 8
 
-        # ASR
-        config.asr_model_size = "base"
-        config.asr_batch_size = 2
-        config.asr_parallel_segments = min(info.cpu_count, 4)
+        # ASR - 使用large-v3最高质量
+        config.asr_model_size = "large-v3"
+        config.asr_batch_size = 1
+        config.asr_parallel_segments = 1
 
-        # 翻译
-        config.translator_model_size = "418M"
-        config.translator_batch_size = 16
-        config.translator_max_workers = min(info.cpu_count // 2, 4)
+        # 翻译 - 使用1.2B大模型
+        config.translator_model_size = "1.2B"
+        config.translator_batch_size = 4
+        config.translator_max_workers = 1
 
-        # TTS - GPU模式强制串行
+        # TTS - 使用1.7B大模型+高质量音色克隆
         config.tts_model_size = "1.7B"
-        config.tts_max_workers = 1  # 强制串行
+        config.tts_max_workers = 1
         config.tts_batch_size = 1
 
-        config.separator_model = "htdemucs"
-        config.separator_device = config.device
+        # 分离 - 使用htdemucs_ft最高质量
+        config.separator_model = "htdemucs_ft"
+        config.separator_device = "cuda"
 
         # 显存安全阈值
         config.gpu_memory_safe_threshold = 3.0
