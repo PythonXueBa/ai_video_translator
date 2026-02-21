@@ -456,7 +456,7 @@ def cmd_asr(args):
 
 def cmd_translate(args):
     """文本/字幕翻译"""
-    from src.translator_m2m100 import M2M100Translator
+    from src.translator_high_quality import get_translator as get_translator_hq
     from src.subtitle_handler import SRTHandler
     from src.config import OUTPUT_DIR
 
@@ -479,12 +479,15 @@ def cmd_translate(args):
     print(f"翻译: {input_path.name}")
     print(f"  {args.source} -> {args.target}")
     print(f"  设备: {device}")
+    print(f"  模型: NLLB-200 (高质量)")
 
-    translator = M2M100Translator(
-        source_language=args.source,
-        target_language=args.target,
+    # 使用高质量翻译器
+    translator = get_translator_hq(
+        source_lang=args.source,
+        target_lang=args.target,
+        model_type="nllb",
+        model_size=args.model if args.model in ["small", "base", "large"] else "base",
         device=device,
-        model_size=args.model,
     )
     translator.load_model()
 
@@ -622,7 +625,7 @@ def cmd_dub(args):
     from src.extractor import AudioExtractor
     from src.separator import VocalSeparator
     from src.asr_module import WhisperASR
-    from src.translator_m2m100 import M2M100Translator
+    from src.translator_high_quality import get_translator as get_translator_hq
     from src.tts_qwen3 import Qwen3TTS, get_qwen3_tts
     from src.merger import AudioMerger
     from src.video_processor import VideoProcessor
@@ -744,7 +747,7 @@ def cmd_dub(args):
     # ==================== 步骤3: 翻译 ====================
     step_start = time.time()
     print("\n[3/6] 翻译...")
-    print(f"  模型: M2M100-{config.translator_model_size}")
+    print(f"  模型: NLLB-200 (高质量翻译)")
     print(f"  批处理大小: {config.translator_batch_size}")
     print(f"  设备: {config.device}")
 
@@ -756,10 +759,12 @@ def cmd_dub(args):
             print(f"  显存不足 ({free_mem:.1f}GB)，翻译使用CPU")
             trans_device = "cpu"
 
-    translator = M2M100Translator(
-        source_language="en",
-        target_language="zh",
-        model_size=config.translator_model_size,
+    # 使用高质量翻译器 (NLLB-200)
+    translator = get_translator_hq(
+        source_lang="en",
+        target_lang="zh",
+        model_type="nllb",
+        model_size="base",  # 使用1.3B模型，平衡质量和速度
         device=trans_device,
     )
     translator.load_model()
@@ -780,9 +785,9 @@ def cmd_dub(args):
         f"[3/6] 翻译完成 | 片段: {len(subtitle_entries)} | 耗时: {step_time:.1f}秒"
     )
 
-    # ==================== 步骤4: TTS合成 ====================
+    # ==================== 步骤4: TTS合成（字幕驱动） ====================
     step_start = time.time()
-    print("\n[4/6] TTS合成...")
+    print("\n[4/6] TTS合成（字幕驱动，时长对齐）...")
 
     # 显示显存状态
     if HAS_MEMORY_MANAGER:
@@ -805,122 +810,110 @@ def cmd_dub(args):
 
     print(f"  模型: Qwen3-{tts_model_size}")
     print(f"  设备: {tts_device}")
+    print(f"  策略: 根据英文字幕时长生成中文TTS")
 
-    # 动态计算最优并行数（GPU强制串行）
-    tts_max_workers = _get_optimal_tts_workers(config, len(subtitle_entries))
-    use_parallel = tts_max_workers > 1
+    # 使用新的字幕驱动TTS引擎
+    from src.subtitle_tts_engine import (
+        SubtitleTTSEngine,
+        TTSConfig,
+        create_aligned_tts,
+    )
 
-    print(f"  并行工作数: {tts_max_workers}")
+    # 保存字幕文件
+    english_srt_path = output_dir / "english.srt"
+    chinese_srt_path = output_dir / "chinese.srt"
+    SRTHandler.write(subtitle_entries, english_srt_path)
+    SRTHandler.write(subtitle_entries, chinese_srt_path, use_translated=True)
 
-    # 获取TTS实例
-    tts = get_qwen3_tts(
-        model_size=tts_model_size,
+    # 创建TTS配置
+    tts_config = TTSConfig(
+        speed_adjustment=True,  # 启用语速调节
+        enable_stretching=True,  # 启用音频拉伸
+        use_voice_clone=True,  # 启用音色克隆
+        target_duration_tolerance=0.15,  # 时长容差0.15秒
+        max_speed_ratio=1.4,  # 最大加速1.4倍
+        min_speed_ratio=0.75,  # 最大减速0.75倍
+    )
+
+    # 创建TTS引擎
+    tts_engine = SubtitleTTSEngine(
+        config=tts_config,
         device=tts_device,
     )
-    tts.load_model()
 
+    # 准备输出目录
     tts_output_dir = output_dir / "tts_output"
     tts_output_dir.mkdir(parents=True, exist_ok=True)
 
-    translated_texts = [entry.translated_text for entry in subtitle_entries]
+    # 准备任务（提取参考音频片段）
+    print("\n  [4.1] 根据字幕切割参考音频...")
+    ref_segments_dir = tts_output_dir / "reference_segments"
+    tts_segments_dir = tts_output_dir / "tts_segments"
 
-    tts.batch_synthesize(
-        texts=translated_texts,
-        reference_audio=vocals_path,
-        output_dir=tts_output_dir,
+    # 根据命令行参数调整配置
+    if args.no_voice_clone:
+        tts_engine.config.use_voice_clone = False
+        print("  音色克隆: 禁用")
+
+    if args.no_speed_adjust:
+        tts_engine.config.speed_adjustment = False
+        print("  语速调节: 禁用")
+
+    tasks = tts_engine.prepare_tasks(
+        english_srt_path=english_srt_path,
+        chinese_srt_path=chinese_srt_path,
+        original_audio_path=vocals_path,  # 使用分离的人声作为参考
+        output_dir=tts_segments_dir,
+        reference_audio_dir=ref_segments_dir,
+        preprocess_subtitles=True,  # 启用字幕预处理
+    )
+
+    # 处理TTS任务（带时长控制）
+    print("\n  [4.2] 生成时长对齐的中文TTS...")
+    processed_tasks = tts_engine.process_tasks(
+        tasks=tasks,
         language="chinese",
-        prefix="tts",
-        max_workers=tts_max_workers,
-        use_parallel=use_parallel,
+        show_progress=True,
     )
 
     # 释放TTS显存
-    tts.unload_model()
+    tts_engine.tts.unload_model()
     clear_memory()
 
-    # ============================================================
-    # 修复: 使用时间轴对齐方式合并TTS音频
-    # 每个TTS片段应该放在其对应的原始时间戳位置
-    # ============================================================
-    import soundfile as sf
-    import numpy as np
+    # 合并TTS音频
+    print("\n  [4.3] 合并TTS音频片段...")
+    merged_tts_path = output_dir / "merged_tts_aligned.wav"
+    tts_engine.merge_task_audio(
+        tasks=processed_tasks,
+        output_path=merged_tts_path,
+        crossfade_ms=10,
+    )
 
-    # 采样率 - 使用与原始音频相同的采样率以确保兼容性
-    tts_sr = 24000  # Qwen3 TTS default sample rate
-
-    # 创建时间轴对齐的音频
-    # 计算总时长（基于原始音频时长）
-    total_duration = original_duration
-    total_samples = int(total_duration * tts_sr)
-
-    # 初始化输出数组
-    timeline_audio = np.zeros(total_samples, dtype=np.float32)
-
-    # 读取每个TTS文件并放置到对应的时间位置
-    print(f"  [时间轴对齐] 将TTS片段放置到原始时间轴...")
-    processed_count = 0
-    total_tts_duration = 0.0
-    
-    for i, entry in enumerate(subtitle_entries):
-        tts_file = tts_output_dir / f"tts_{i:04d}.wav"
-        if tts_file.exists():
-            tts_audio, sr = sf.read(str(tts_file), dtype="float32")
-            
-            # 检查采样率
-            if sr != tts_sr:
-                print(f"  警告: TTS文件 {tts_file.name} 采样率不匹配 ({sr} != {tts_sr})")
-                # 重采样
-                try:
-                    import librosa
-                    tts_audio = librosa.resample(tts_audio, orig_sr=sr, target_sr=tts_sr)
-                    sr = tts_sr
-                except ImportError:
-                    print("  警告: 无法重采样，跳过此片段")
-                    continue
-
-            # 计算开始位置（秒 → 样本）
-            start_sample = int(entry.start_seconds * tts_sr)
-            end_sample = start_sample + len(tts_audio)
-
-            # 确保不超出总长度
-            if end_sample <= total_samples:
-                timeline_audio[start_sample:end_sample] = tts_audio
-                processed_count += 1
-                total_tts_duration += len(tts_audio) / tts_sr
-            else:
-                # 如果超出，截断
-                available_samples = total_samples - start_sample
-                if available_samples > 0:
-                    timeline_audio[start_sample:total_samples] = tts_audio[:available_samples]
-                    processed_count += 1
-                    total_tts_duration += available_samples / tts_sr
-                print(f"  警告: TTS片段 {i} 超出时间轴范围，已截断")
-
-    print(f"  时间轴对齐处理完成: {processed_count}/{len(subtitle_entries)} 个片段")
-    print(f"  TTS总时长: {total_tts_duration:.2f}s")
-
-    # 保存时间轴对齐的TTS音频
-    merged_tts_path = output_dir / "merged_tts.wav"
-    sf.write(str(merged_tts_path), timeline_audio, tts_sr)
-    
-    # 检查生成的音频时长
+    # 验证最终时长
     merged_info = MediaAnalyzer.analyze_audio(merged_tts_path)
-    print(f"  TTS音频时间轴对齐完成: {merged_info.duration:.2f}s (目标: {total_duration:.2f}s)")
-    
-    # 强制调整音频时长以确保完全匹配
-    if abs(merged_info.duration - total_duration) > 0.1:  # 降低阈值到0.1秒
-        print(f"  警告: 时长不匹配 ({merged_info.duration:.2f}s vs {total_duration:.2f}s)，进行精确调整...")
-        adjusted_tts_path = output_dir / "merged_tts_adjusted.wav"
-        processor = VideoProcessor()
-        processor.adjust_audio_duration(merged_tts_path, total_duration, adjusted_tts_path)
-        merged_tts_path = adjusted_tts_path
-        # 重新检查时长
-        adjusted_info = MediaAnalyzer.analyze_audio(adjusted_tts_path)
-        print(f"  调整后时长: {adjusted_info.duration:.2f}s")
+    print(f"\n  TTS音频对齐完成: {merged_info.duration:.2f}s (目标: {original_duration:.2f}s)")
+
+    # 如果仍有较大差异，使用音频拉伸进行最终调整
+    duration_diff = abs(merged_info.duration - original_duration)
+    if duration_diff > 0.3:
+        print(f"  进行最终时长调整 (差异: {duration_diff:.2f}s)...")
+        from src.subtitle_tts_engine import AudioProcessor
+
+        final_aligned_path = output_dir / "merged_tts_final.wav"
+        AudioProcessor.stretch_audio(
+            merged_tts_path,
+            final_aligned_path,
+            target_duration=original_duration,
+        )
+        merged_tts_path = final_aligned_path
+
+        # 验证调整后的时长
+        final_info = MediaAnalyzer.analyze_audio(merged_tts_path)
+        print(f"  调整后时长: {final_info.duration:.2f}s")
 
     step_time = time.time() - step_start
     logger.info(
-        f"[4/6] TTS合成完成 | 片段: {len(translated_texts)} | 耗时: {step_time:.1f}秒"
+        f"[4/6] TTS合成完成 | 片段: {len(processed_tasks)} | 耗时: {step_time:.1f}秒"
     )
 
     # ==================== 步骤5: 音频处理 ====================
@@ -945,20 +938,23 @@ def cmd_dub(args):
     print(f"  最终音频时长: {final_duration:.2f}s")
     
     # 如果需要，调整最终音频时长
-    if abs(final_duration - original_duration) > 1.0:  # 时长差异超过1秒
+    if abs(final_duration - original_duration) > 0.5:  # 时长差异超过0.5秒
         print(f"  调整音频时长从 {final_duration:.2f}s 到 {original_duration:.2f}s")
-        processor = VideoProcessor()
         adjusted_final_path = output_dir / "final_dubbed_zh_adjusted.wav"
-        processor.adjust_audio_duration(
-            final_audio, original_duration, adjusted_final_path
+        # 使用智能对齐代替简单的截断/填充
+        aligner.align_audio(
+            audio_path=final_audio,
+            target_duration=original_duration,
+            output_path=adjusted_final_path,
+            method="auto",
         )
         # 用调整后的文件替换原文件
         final_audio.unlink()
         adjusted_final_path.rename(final_audio)
         print(f"  ✓ 音频时长调整完成")
-    else:
-        # 即使不需要调整，也要初始化processor变量供后续使用
-        processor = VideoProcessor()
+
+    # 初始化processor变量供后续使用
+    processor = VideoProcessor()
 
     step_time = time.time() - step_start
     print(f"✓ 音频处理完成 ({step_time:.1f}秒)")
@@ -1070,6 +1066,21 @@ def main():
     dub_parser = subparsers.add_parser("dub", help="AI配音(英文→中文)")
     dub_parser.add_argument(
         "input", nargs="?", help="输入视频(默认: data/gdot教程.mp4)"
+    )
+    dub_parser.add_argument(
+        "--legacy-tts",
+        action="store_true",
+        help="使用传统TTS模式（不按字幕时长对齐）",
+    )
+    dub_parser.add_argument(
+        "--no-speed-adjust",
+        action="store_true",
+        help="禁用语速调节",
+    )
+    dub_parser.add_argument(
+        "--no-voice-clone",
+        action="store_true",
+        help="禁用音色克隆",
     )
     dub_parser.set_defaults(func=cmd_dub)
 

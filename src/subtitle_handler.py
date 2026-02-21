@@ -48,6 +48,25 @@ class SubtitleEntry:
         millis = int((seconds % 1) * 1000)
         return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
+    @property
+    def duration(self) -> float:
+        """获取字幕持续时间"""
+        return self.end_seconds - self.start_seconds
+
+    def adjust_timing(self, offset: float = 0.0, scale: float = 1.0):
+        """调整时间轴
+
+        Args:
+            offset: 时间偏移（秒）
+            scale: 时间缩放比例
+        """
+        self.start_time = self.seconds_to_time(
+            self.start_seconds * scale + offset
+        )
+        self.end_time = self.seconds_to_time(
+            self.end_seconds * scale + offset
+        )
+
 
 class SRTHandler:
     """SRT字幕处理器"""
@@ -162,3 +181,155 @@ class SRTHandler:
         SRTHandler.write(entries, output_path, use_translated=True)
 
         return entries
+
+    @staticmethod
+    def merge_short_entries(
+        entries: List[SubtitleEntry],
+        min_duration: float = 1.5,
+        max_gap: float = 0.5,
+    ) -> List[SubtitleEntry]:
+        """
+        合并过短的字幕条目
+
+        Args:
+            entries: 原始字幕条目
+            min_duration: 最小时长（秒）
+            max_gap: 最大合并间隔（秒）
+
+        Returns:
+            合并后的字幕条目
+        """
+        if not entries:
+            return entries
+
+        merged = []
+        current = entries[0]
+
+        for i in range(1, len(entries)):
+            next_entry = entries[i]
+
+            # 计算当前条目的时长
+            current_duration = current.duration
+
+            # 计算与下一个条目的间隔
+            gap = next_entry.start_seconds - current.end_seconds
+
+            # 如果当前条目太短且与下一个条目间隔小，则合并
+            if current_duration < min_duration and gap <= max_gap:
+                # 合并文本
+                current.text += " " + next_entry.text
+                if current.translated_text and next_entry.translated_text:
+                    current.translated_text += " " + next_entry.translated_text
+                # 更新结束时间
+                current.end_time = next_entry.end_time
+            else:
+                merged.append(current)
+                current = next_entry
+
+        # 添加最后一个条目
+        merged.append(current)
+
+        # 重新编号
+        for i, entry in enumerate(merged, 1):
+            entry.index = i
+
+        return merged
+
+    @staticmethod
+    def split_long_entries(
+        entries: List[SubtitleEntry],
+        max_duration: float = 10.0,
+        max_chars: int = 80,
+    ) -> List[SubtitleEntry]:
+        """
+        分割过长的字幕条目
+
+        Args:
+            entries: 原始字幕条目
+            max_duration: 最大时长（秒）
+            max_chars: 最大字符数
+
+        Returns:
+            分割后的字幕条目
+        """
+        result = []
+
+        for entry in entries:
+            duration = entry.duration
+            text = entry.text
+            translated = entry.translated_text
+
+            # 检查是否需要分割
+            need_split = duration > max_duration or len(text) > max_chars
+
+            if not need_split:
+                result.append(entry)
+                continue
+
+            # 计算分割数
+            num_splits = max(
+                int(duration / max_duration) + 1,
+                len(text) // max_chars + 1,
+            )
+
+            # 分割文本（按句子或字符数）
+            split_texts = SRTHandler._split_text(text, num_splits)
+            split_translated = SRTHandler._split_text(translated, num_splits) if translated else split_texts
+
+            # 计算每个片段的时长
+            total_duration = duration
+            segment_duration = total_duration / len(split_texts)
+
+            # 创建新的条目
+            for i, (split_text, split_trans) in enumerate(zip(split_texts, split_translated)):
+                start_sec = entry.start_seconds + i * segment_duration
+                end_sec = min(start_sec + segment_duration, entry.end_seconds)
+
+                new_entry = SubtitleEntry(
+                    index=0,  # 稍后重新编号
+                    start_time=SubtitleEntry.seconds_to_time(start_sec),
+                    end_time=SubtitleEntry.seconds_to_time(end_sec),
+                    text=split_text,
+                    translated_text=split_trans,
+                )
+                result.append(new_entry)
+
+        # 重新编号
+        for i, entry in enumerate(result, 1):
+            entry.index = i
+
+        return result
+
+    @staticmethod
+    def _split_text(text: str, num_parts: int) -> List[str]:
+        """将文本分割成多个部分"""
+        if num_parts <= 1:
+            return [text]
+
+        # 尝试按句子分割
+        sentences = re.split(r'([.!?。！？]+)', text)
+        sentences = [s for s in sentences if s.strip()]
+
+        if len(sentences) >= num_parts:
+            # 按句子分割
+            result = []
+            part_size = len(sentences) // num_parts
+            for i in range(num_parts):
+                start = i * part_size
+                end = start + part_size if i < num_parts - 1 else len(sentences)
+                part = "".join(sentences[start:end]).strip()
+                if part:
+                    result.append(part)
+            return result if result else [text]
+
+        # 按字符数平均分割
+        chars_per_part = len(text) // num_parts
+        result = []
+        for i in range(num_parts):
+            start = i * chars_per_part
+            end = start + chars_per_part if i < num_parts - 1 else len(text)
+            part = text[start:end].strip()
+            if part:
+                result.append(part)
+
+        return result if result else [text]

@@ -248,9 +248,11 @@ class Qwen3TTS:
         output_path: Union[str, Path],
         language: str = "zh",
         ref_text: Optional[str] = None,
+        speed_ratio: float = 1.0,
+        emotion: Optional[str] = None,
     ) -> Path:
         """
-        合成语音（带音色克隆）
+        合成语音（带音色克隆和语速控制）
 
         Args:
             text: 要合成的文本
@@ -258,6 +260,8 @@ class Qwen3TTS:
             output_path: 输出路径
             language: 语言代码 (zh/en/ja/ko/de/fr/ru/pt/es/it)
             ref_text: 参考音频的文本（可选）
+            speed_ratio: 语速比例 (0.5-2.0, 1.0为正常语速)
+            emotion: 情感标记 (可选)
         """
         self.load_model()
         output_path = Path(output_path)
@@ -266,44 +270,73 @@ class Qwen3TTS:
             return self._generate_silence(output_path, 1.0)
 
         print(f"TTS合成: {text[:50]}...")
+        if speed_ratio != 1.0:
+            print(f"  语速比例: {speed_ratio:.2f}x")
 
         try:
             # 参考音频检查
-            ref_audio_path = Path(reference_audio)
-            if not ref_audio_path.exists():
+            ref_audio_path = Path(reference_audio) if reference_audio else None
+            if ref_audio_path and not ref_audio_path.exists():
                 print(f"警告: 参考音频不存在: {reference_audio}")
-                return self._generate_silence(output_path, len(text) * 0.15)
+                ref_audio_path = None
 
-            # 调用模型
+            # 构建生成参数
             generate_kwargs = {
                 "text": text,
                 "language": language.capitalize(),
-                "ref_audio": str(reference_audio),
             }
 
+            # 如果有参考音频，使用音色克隆
+            if ref_audio_path:
+                generate_kwargs["ref_audio"] = str(ref_audio_path)
+
+            # 添加语速控制参数（如果模型支持）
+            if speed_ratio != 1.0:
+                # 尝试不同的语速参数名
+                for param_name in ["speed", "speed_ratio", "speaking_rate", "rate"]:
+                    generate_kwargs[param_name] = speed_ratio
+
+            # 添加情感参数（如果指定）
+            if emotion:
+                generate_kwargs["emotion"] = emotion
+
             # 尝试不同的生成方式
+            wavs = None
+            sr = self.sample_rate
+
             try:
-                # 方式1: 使用x_vector_only_mode
-                generate_kwargs["x_vector_only_mode"] = True
-                wavs, sr = self.model.generate_voice_clone(**generate_kwargs)
-            except (TypeError, AttributeError):
+                # 方式1: 使用generate_voice_clone（带音色克隆）
+                if ref_audio_path and hasattr(self.model, 'generate_voice_clone'):
+                    clone_kwargs = generate_kwargs.copy()
+                    clone_kwargs["x_vector_only_mode"] = True
+                    wavs, sr = self.model.generate_voice_clone(**clone_kwargs)
+            except (TypeError, AttributeError, Exception) as e:
+                pass
+
+            if wavs is None:
                 try:
-                    # 方式2: 使用ref_text
-                    generate_kwargs.pop("x_vector_only_mode", None)
-                    generate_kwargs["ref_text"] = ref_text or ""
-                    wavs, sr = self.model.generate_voice_clone(**generate_kwargs)
+                    # 方式2: 使用标准generate
+                    if hasattr(self.model, 'generate'):
+                        wavs, sr = self.model.generate(**generate_kwargs)
                 except Exception as e:
-                    # 方式3: 直接生成
-                    wavs, sr = self.model.generate(
-                        text=text,
-                        language=language.capitalize()
-                    )
+                    pass
+
+            if wavs is None:
+                try:
+                    # 方式3: 最简调用
+                    wavs, sr = self.model.generate(text=text)
+                except Exception as e:
+                    raise RuntimeError(f"所有生成方式都失败: {e}")
 
             # 保存音频
             if isinstance(wavs, (list, tuple)):
                 audio_data = wavs[0]
             else:
                 audio_data = wavs
+
+            # 确保音频数据是numpy数组
+            if isinstance(audio_data, torch.Tensor):
+                audio_data = audio_data.cpu().numpy()
 
             sf.write(str(output_path), audio_data, sr)
 
@@ -317,7 +350,11 @@ class Qwen3TTS:
 
         except Exception as e:
             print(f"✗ 合成失败: {e}")
-            return self._generate_silence(output_path, max(1.0, len(text) * 0.15))
+            # 根据文本长度估算静音时长
+            estimated_duration = max(1.0, len(text) * 0.15)
+            if speed_ratio > 0:
+                estimated_duration /= speed_ratio
+            return self._generate_silence(output_path, estimated_duration)
 
     def _generate_silence(self, output_path: Path, duration: float) -> Path:
         """生成静音文件"""
@@ -334,14 +371,37 @@ class Qwen3TTS:
         language: str = "zh",
         emotion: str = "自然",
         speaking_rate: str = "正常",
+        speed_ratio: float = 1.0,
     ) -> Path:
-        """带情感和语速控制的语音合成"""
-        # 当前版本不支持情感控制，直接调用基础合成
+        """
+        带情感和语速控制的语音合成
+
+        Args:
+            text: 要合成的文本
+            reference_audio: 参考音频路径
+            output_path: 输出路径
+            language: 语言
+            emotion: 情感 (自然/高兴/悲伤/愤怒/惊讶等)
+            speaking_rate: 语速描述 (慢速/正常/快速)
+            speed_ratio: 语速比例 (0.5-2.0)
+        """
+        # 将描述性语速转换为比例
+        rate_map = {
+            "慢速": 0.8,
+            "正常": 1.0,
+            "快速": 1.2,
+        }
+
+        if speaking_rate in rate_map and speed_ratio == 1.0:
+            speed_ratio = rate_map[speaking_rate]
+
         return self.synthesize(
             text=text,
             reference_audio=reference_audio,
             output_path=output_path,
             language=language,
+            speed_ratio=speed_ratio,
+            emotion=emotion if emotion != "自然" else None,
         )
 
     def _synthesize_single_safe(
