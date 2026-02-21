@@ -37,10 +37,10 @@ logs/
 *.log
 
 # Output files
-# output/
-# data/*.mp4
-# data/*.wav
-# data/*.mp3
+output/
+data/*.mp4
+data/*.wav
+data/*.mp3
 
 # Models (large files)
 models/
