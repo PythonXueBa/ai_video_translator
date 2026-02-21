@@ -315,11 +315,11 @@ class SubtitleTTSEngine:
             if len(english_entries) != len(chinese_entries):
                 print(f"  合并后英文字幕: {len(english_entries)} 条")
                 print(f"  注意：中文字幕数量不匹配，将使用英文字幕时间轴")
-                # 使用中文字幕内容，但英文字幕时间
+                # 使用中文字幕内容，但英文字幕时间轴
                 if len(chinese_entries) > 0:
                     chinese_texts = [e.text for e in chinese_entries]
                     # 重新分配文本到合并后的时间轴 - 按比例分配避免重复
-                    chinese_entries = []
+                    new_chinese_entries = []
                     total_texts = len(chinese_texts)
                     total_en = len(english_entries)
 
@@ -333,12 +333,15 @@ class SubtitleTTSEngine:
                             end_idx = total_texts
 
                         combined_text = " ".join(chinese_texts[start_idx:end_idx])
-                        chinese_entries.append(SubtitleEntry(
+                        # 关键：使用英文字幕的时间轴
+                        new_chinese_entries.append(SubtitleEntry(
                             index=en_entry.index,
                             start_time=en_entry.start_time,
                             end_time=en_entry.end_time,
                             text=combined_text,
                         ))
+
+                    chinese_entries = new_chinese_entries
 
         if len(english_entries) != len(chinese_entries):
             print(f"警告: 英文字幕({len(english_entries)})和中文字幕({len(chinese_entries)})数量不匹配")

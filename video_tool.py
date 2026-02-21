@@ -621,7 +621,7 @@ def cmd_silent(args):
 
 
 def cmd_dub(args):
-    """AI配音(英文→中文)"""
+    """AI配音(支持多语言)"""
     from src.config import OUTPUT_DIR
     from src.extractor import AudioExtractor
     from src.separator import VocalSeparator
@@ -680,12 +680,16 @@ def cmd_dub(args):
     output_dir = OUTPUT_DIR / f"{input_video.stem}_zh_dubbed"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # 获取语言设置
+    source_lang = getattr(args, 'source_lang', 'en')
+    target_lang = getattr(args, 'target_lang', 'zh')
+
     # 获取性能配置
     perf_config = get_performance_config()
     config = get_parallel_config()
 
     print("=" * 60)
-    print("AI配音 - 英文→中文")
+    print(f"AI配音 - {source_lang.upper()}→{target_lang.upper()}")
     print("=" * 60)
 
     # 显示系统信息和配置
@@ -756,7 +760,7 @@ def cmd_dub(args):
             print(f"  显存不足 ({free_mem:.1f}GB)，ASR使用CPU")
             asr_device = "cpu"
 
-    asr = WhisperASR(model_size=config.asr_model_size, device=asr_device, language="en")
+    asr = WhisperASR(model_size=config.asr_model_size, device=asr_device, language=source_lang)
     asr.load_model()
     results = asr.transcribe(vocals_path)
 
@@ -798,10 +802,10 @@ def cmd_dub(args):
 
     # 使用M2M100翻译器
     translator = M2M100Translator(
-        source_language="en",
-        target_language="zh",
+        source_language=source_lang,
+        target_language=target_lang,
         device=trans_device,
-        model_size="418M",  # 使用418M模型，平衡质量和速度
+        model_size="1.2B",  # 使用1.2B模型，更高翻译质量
     )
     translator.load_model()
 
@@ -909,7 +913,7 @@ def cmd_dub(args):
     print("\n  [4.2] 生成时长对齐的中文TTS...")
     processed_tasks = tts_engine.process_tasks(
         tasks=tasks,
-        language="chinese",
+        language=target_lang,
         show_progress=True,
     )
 
@@ -1125,7 +1129,7 @@ def main():
     replace_parser.set_defaults(func=cmd_replace)
 
     # dub 命令
-    dub_parser = subparsers.add_parser("dub", help="AI配音(英文→中文)")
+    dub_parser = subparsers.add_parser("dub", help="AI配音(支持多语言)")
     dub_parser.add_argument(
         "input", nargs="?", help="输入视频(默认: data/SpongeBob SquarePants_en.mp4)"
     )
@@ -1155,6 +1159,18 @@ def main():
         type=float,
         default=0.0,
         help="转换时长（秒，默认0表示转换全部）",
+    )
+    dub_parser.add_argument(
+        "--source-lang",
+        type=str,
+        default="en",
+        help="源语言代码（默认: en）",
+    )
+    dub_parser.add_argument(
+        "--target-lang",
+        type=str,
+        default="zh",
+        help="目标语言代码（默认: zh）",
     )
     dub_parser.set_defaults(func=cmd_dub)
 

@@ -134,11 +134,31 @@ class SRTHandler:
                 if not text:
                     continue
 
+                # 清理文本中的多余零和时间戳格式问题
+                text = SRTHandler._clean_text(text)
+
                 f.write(f"{i}\n")
                 f.write(f"{entry.start_time} --> {entry.end_time}\n")
                 f.write(f"{text}\n\n")
 
         print(f"✓ SRT字幕已保存: {output_path}")
+
+    @staticmethod
+    def _clean_text(text: str) -> str:
+        """清理字幕文本"""
+        # 移除多余的零和时间戳格式
+        import re
+
+        # 移除类似 00:00:00,000 --> 00:00:08,000 的时间戳格式错误
+        text = re.sub(r'\d{2}:\d{2}:\d{2},\d{3}\s*-->?\s*\d{2}:\d{2}:\d{2},\d{3}', '', text)
+
+        # 移除行首的数字序号（如 "1\n" 或 "1 "）
+        text = re.sub(r'^\d+\s*\n?', '', text)
+
+        # 清理多余空白
+        text = ' '.join(text.split())
+
+        return text.strip()
 
     @staticmethod
     def translate_srt(

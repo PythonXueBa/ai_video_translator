@@ -241,6 +241,31 @@ class Qwen3TTS:
             clear_gpu_memory()
             print("✓ TTS模型已卸载")
 
+    # 支持的语言代码映射
+    LANGUAGE_MAP = {
+        "zh": "Chinese",
+        "en": "English",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "es": "Spanish",
+        "fr": "French",
+        "de": "German",
+        "ru": "Russian",
+        "pt": "Portuguese",
+        "it": "Italian",
+        "ar": "Arabic",
+        "hi": "Hindi",
+        "vi": "Vietnamese",
+        "th": "Thai",
+        "id": "Indonesian",
+    }
+
+    def _normalize_language(self, language: str) -> str:
+        """标准化语言代码"""
+        language = language.lower().replace("-", "").replace("_", "")
+        # 直接映射或返回首字母大写
+        return self.LANGUAGE_MAP.get(language, language.capitalize())
+
     def synthesize(
         self,
         text: str,
@@ -280,10 +305,13 @@ class Qwen3TTS:
                 print(f"警告: 参考音频不存在: {reference_audio}")
                 ref_audio_path = None
 
+            # 标准化语言代码
+            normalized_language = self._normalize_language(language)
+
             # 构建生成参数
             generate_kwargs = {
                 "text": text,
-                "language": language.capitalize(),
+                "language": normalized_language,
             }
 
             # 如果有参考音频，使用音色克隆
@@ -306,10 +334,10 @@ class Qwen3TTS:
 
             try:
                 if hasattr(self.model, 'generate_voice_clone'):
-                    # 准备正确的参数
+                    # 准备正确的参数 - 使用标准化后的语言
                     clone_kwargs = {
                         "text": text,
-                        "language": language.capitalize(),
+                        "language": normalized_language,
                     }
 
                     # 添加参考音频

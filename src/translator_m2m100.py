@@ -24,11 +24,12 @@ except ImportError:
 class M2M100Translator:
     """M2M100多语言翻译器"""
 
-    # 语言代码映射
+    # 语言代码映射 - 支持更多语言
     LANGUAGE_CODES = {
         "en": "en",
         "zh": "zh",
         "zh-cn": "zh",
+        "zh-tw": "zh",
         "ja": "ja",
         "ko": "ko",
         "es": "es",
@@ -36,6 +37,15 @@ class M2M100Translator:
         "de": "de",
         "ru": "ru",
         "ar": "ar",
+        "pt": "pt",
+        "it": "it",
+        "nl": "nl",
+        "pl": "pl",
+        "tr": "tr",
+        "vi": "vi",
+        "th": "th",
+        "id": "id",
+        "hi": "hi",
     }
 
     def __init__(
