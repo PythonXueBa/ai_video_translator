@@ -634,7 +634,7 @@ def cmd_dub(args):
     import soundfile as sf
     import numpy as np
 
-    input_video = Path(args.input) if args.input else Path("data/gdot教程.mp4")
+    input_video = Path(args.input) if args.input else Path("data/SpongeBob SquarePants_en.mp4")
 
     if not input_video.exists():
         print(f"✗ 视频文件不存在: {input_video}")
@@ -1065,7 +1065,7 @@ def main():
     # dub 命令
     dub_parser = subparsers.add_parser("dub", help="AI配音(英文→中文)")
     dub_parser.add_argument(
-        "input", nargs="?", help="输入视频(默认: data/gdot教程.mp4)"
+        "input", nargs="?", help="输入视频(默认: data/SpongeBob SquarePants_en.mp4)"
     )
     dub_parser.add_argument(
         "--legacy-tts",

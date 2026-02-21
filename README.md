@@ -41,7 +41,7 @@ python video_tool.py test
 ### 4. AI 配音
 
 ```bash
-python video_tool.py dub data/gdot_En.mp4
+python video_tool.py dub data/SpongeBob SquarePants_en.mp4
 ```
 
 ---
@@ -52,9 +52,9 @@ python video_tool.py dub data/gdot_En.mp4
 
 | 原始视频 (英文) | 翻译后视频 (中文配音) |
 |----------------|----------------------|
-| [gdot_En.mp4](data/gdot_En.mp4) | [gdot_En_中文配音.mp4](output/gdot_En_zh_dubbed/gdot_En_中文配音.mp4) |
+| [SpongeBob SquarePants_en.mp4](data/SpongeBob SquarePants_en.mp4) | [SpongeBob SquarePants_中文配音.mp4](output/SpongeBob SquarePants_zh_dubbed/SpongeBob SquarePants_中文配音.mp4) |
 
-**原始视频**: 8分40秒英文演讲视频  
+**原始视频**: 海绵宝宝英文视频  
 **处理后**: 完整中文AI配音，保留原始画面和背景音
 
 ---
@@ -187,7 +187,7 @@ python video_tool.py silent video.mp4 -o silent.mp4
 完整的英文→中文配音流程。
 
 ```bash
-python video_tool.py dub /data/gdot_En.mp4
+python video_tool.py dub data/SpongeBob SquarePants_en.mp4
 ```
 
 ---
@@ -259,60 +259,51 @@ output/视频名_zh_dubbed/
 ## 前后对比示例
 
 ### 原始视频
-- 视频: `gdot_En.mp4`
+- 视频: `SpongeBob SquarePants_en.mp4`
 - 音频: 英文原声
-- 时长: 8分40秒 (520.10秒)
+- 内容: 海绵宝宝动画片段
 
 ### 处理后输出
-- 视频: `gdot_En_中文配音.mp4`
+- 视频: `SpongeBob SquarePants_中文配音.mp4`
 - 音频: 中文AI配音（保留原视频画面）
-- 时长: 8分40秒 (520.10秒)
+- 内容: 完整中文配音版本
 
 ### 音频处理详情
 
-| 文件 | 说明 | 时长 | 状态 |
-|------|------|------|------|
-| `extracted.wav` | 提取的原始英文音频 | 520.10秒 | ✓ 已生成 |
-| `merged_tts.wav` | TTS中文配音（时间轴对齐） | 520.10秒 | ✓ 已生成 |
-| `final_dubbed_zh.wav` | 合成后的配音+背景音 | 520.10秒 | ✓ 已生成 |
+| 文件 | 说明 | 状态 |
+|------|------|------|
+| `extracted.wav` | 提取的原始英文音频 | ✓ 已生成 |
+| `merged_tts.wav` | TTS中文配音（时间轴对齐） | ✓ 已生成 |
+| `final_dubbed_zh.wav` | 合成后的配音+背景音 | ✓ 已生成 |
 
 ### 单独使用各功能示例
 
 ```bash
-# 假设输入视频为 data/gdot_En.mp4，输出目录为 output/gdot_En_zh_dubbed/
+# 假设输入视频为 data/SpongeBob SquarePants_en.mp4
 
 # 步骤1: 提取音频
-python video_tool.py convert data/gdot_En.mp4 -o output/gdot_En_zh_dubbed/extracted.wav
+python video_tool.py convert data/SpongeBob SquarePants_en.mp4 -o output/extracted.wav
 
 # 步骤2: 人声分离（输出到 separated/ 子目录）
-python video_tool.py separate data/gdot_En.mp4
-# 生成: output/gdot_En_separated/separated/vocals.wav
-#       output/gdot_En_separated/separated/background.wav
+python video_tool.py separate data/SpongeBob SquarePants_en.mp4
 
 # 步骤3: 语音识别（基于人声）
-python video_tool.py asr output/gdot_En_separated/vocals.wav -l en
-# 生成: output/gdot_En_separated_asr/gdot_En_separated.srt
+python video_tool.py asr output/SpongeBob SquarePants_separated/separated/vocals.wav -l en
 
 # 步骤4: 翻译（英文 -> 中文）
-python video_tool.py translate output/gdot_En_separated_asr/gdot_En_separated.srt -s en -t zh
-# 生成: output/translated/gdot_En_separated_zh.srt
+python video_tool.py translate output/SpongeBob SquarePants_separated_asr/SpongeBob SquarePants_separated.srt -s en -t zh
 
 # 步骤5: TTS合成（带音色克隆）
-python video_tool.py tts output/translated/gdot_En_separated_zh.srt -l chinese -r output/gdot_En_separated/vocals.wav
-# 生成: output/tts_output/merged_tts.wav
+python video_tool.py tts output/translated/SpongeBob SquarePants_separated_zh.srt -l chinese -r output/SpongeBob SquarePants_separated/separated/vocals.wav
 
 # 步骤6: 合并音频（TTS人声 + 背景音）
-# 方式1: 使用默认输出文件名 final_dubbed_zh.wav
-python video_tool.py merge -v output/tts_output/merged_tts.wav -b output/gdot_En_separated/separated/background.wav
-
-# 方式2: 指定输出路径并调整音量
-python video_tool.py merge -v output/tts_output/merged_tts.wav -b output/gdot_En_separated/separated/background.wav -o output/gdot_En_zh_dubbed/final_dubbed_zh.wav --vocals-vol 1.0 --background-vol 0.8
+python video_tool.py merge -v output/tts_output/merged_tts.wav -b output/SpongeBob SquarePants_separated/separated/background.wav
 
 # 步骤7: 生成静音视频（移除原视频音轨）
-python video_tool.py silent data/gdot_En.mp4 -o output/gdot_En_silent.mp4
+python video_tool.py silent data/SpongeBob SquarePants_en.mp4 -o output/SpongeBob SquarePants_silent.mp4
 
 # 步骤8: 替换视频音频（将配音音频合成到静音视频）
-python video_tool.py replace output/gdot_En_silent.mp4 -a output/gdot_En_zh_dubbed/final_dubbed_zh.wav
+python video_tool.py replace output/SpongeBob SquarePants_silent.mp4 -a output/final_dubbed_zh.wav
 ```
 
 ---
