@@ -930,23 +930,42 @@ def cmd_dub(args):
     merged_info = MediaAnalyzer.analyze_audio(merged_tts_path)
     print(f"\n  TTS音频对齐完成: {merged_info.duration:.2f}s (目标: {original_duration:.2f}s)")
 
-    # 如果仍有较大差异，使用音频拉伸进行最终调整
+    # 不再强制调整TTS音频时长到原视频时长，保持自然语速
+    # 只处理差异过大的情况（超过5秒才进行轻微调整）
     duration_diff = abs(merged_info.duration - original_duration)
-    if duration_diff > 0.3:
-        print(f"  进行最终时长调整 (差异: {duration_diff:.2f}s)...")
+    if duration_diff > 5.0:
+        print(f"  注意: TTS音频时长 ({merged_info.duration:.2f}s) 与原视频 ({original_duration:.2f}s) 差异较大")
+        print(f"  保持自然语速，仅添加静音填充到视频时长...")
+
+        # 使用静音填充而不是拉伸音频
         from src.subtitle_tts_engine import AudioProcessor
+        import numpy as np
 
-        final_aligned_path = output_dir / "merged_tts_final.wav"
-        AudioProcessor.stretch_audio(
-            merged_tts_path,
-            final_aligned_path,
-            target_duration=original_duration,
-        )
-        merged_tts_path = final_aligned_path
+        # 加载现有TTS音频
+        tts_audio, sr = sf.read(str(merged_tts_path), dtype="float32")
+        current_duration = len(tts_audio) / sr
 
-        # 验证调整后的时长
-        final_info = MediaAnalyzer.analyze_audio(merged_tts_path)
-        print(f"  调整后时长: {final_info.duration:.2f}s")
+        if current_duration < original_duration:
+            # 在末尾添加静音，使时长匹配视频
+            silence_samples = int((original_duration - current_duration) * sr)
+            silence = np.zeros(silence_samples, dtype=np.float32)
+
+            # 合并音频和静音
+            if tts_audio.ndim == 1:
+                final_audio = np.concatenate([tts_audio, silence])
+            else:
+                silence = np.zeros((silence_samples, tts_audio.shape[1]), dtype=np.float32)
+                final_audio = np.concatenate([tts_audio, silence], axis=0)
+
+            final_aligned_path = output_dir / "merged_tts_final.wav"
+            sf.write(str(final_aligned_path), final_audio, sr)
+            merged_tts_path = final_aligned_path
+
+            # 验证调整后的时长
+            final_info = MediaAnalyzer.analyze_audio(merged_tts_path)
+            print(f"  调整后时长: {final_info.duration:.2f}s (添加静音填充)")
+        else:
+            print(f"  保持原TTS音频时长: {current_duration:.2f}s")
 
     step_time = time.time() - step_start
     logger.info(
@@ -973,18 +992,24 @@ def cmd_dub(args):
     final_audio_data, final_sr = sf.read(str(final_audio))
     final_duration = len(final_audio_data) / final_sr
     print(f"  最终音频时长: {final_duration:.2f}s")
-    
-    # 如果需要，调整最终音频时长
+
+    # 如果需要，调整最终音频时长（使用静音填充或截断）
     if abs(final_duration - original_duration) > 0.5:  # 时长差异超过0.5秒
         print(f"  调整音频时长从 {final_duration:.2f}s 到 {original_duration:.2f}s")
         adjusted_final_path = output_dir / "final_dubbed_zh_adjusted.wav"
-        # 使用智能对齐代替简单的截断/填充
-        aligner.align_audio(
-            audio_path=final_audio,
-            target_duration=original_duration,
-            output_path=adjusted_final_path,
-            method="auto",
-        )
+
+        if final_duration < original_duration:
+            # 添加静音填充
+            silence_samples = int((original_duration - final_duration) * final_sr)
+            silence = np.zeros(silence_samples, dtype=np.float32)
+            adjusted_audio = np.concatenate([final_audio_data, silence])
+        else:
+            # 截断音频
+            end_sample = int(original_duration * final_sr)
+            adjusted_audio = final_audio_data[:end_sample]
+
+        sf.write(str(adjusted_final_path), adjusted_audio, final_sr)
+
         # 用调整后的文件替换原文件
         final_audio.unlink()
         adjusted_final_path.rename(final_audio)

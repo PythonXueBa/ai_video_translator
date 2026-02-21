@@ -300,33 +300,38 @@ class Qwen3TTS:
             if emotion:
                 generate_kwargs["emotion"] = emotion
 
-            # 尝试不同的生成方式
+            # 使用generate_voice_clone进行音色克隆
             wavs = None
             sr = self.sample_rate
 
             try:
-                # 方式1: 使用generate_voice_clone（带音色克隆）
-                if ref_audio_path and hasattr(self.model, 'generate_voice_clone'):
-                    clone_kwargs = generate_kwargs.copy()
-                    clone_kwargs["x_vector_only_mode"] = True
-                    wavs, sr = self.model.generate_voice_clone(**clone_kwargs)
-            except (TypeError, AttributeError, Exception) as e:
+                if hasattr(self.model, 'generate_voice_clone'):
+                    # 准备正确的参数
+                    clone_kwargs = {
+                        "text": text,
+                        "language": language.capitalize(),
+                    }
+
+                    # 添加参考音频
+                    if ref_audio_path:
+                        clone_kwargs["ref_audio"] = str(ref_audio_path)
+                        # 使用x_vector_only_mode=True进行音色克隆（不需要ref_text）
+                        clone_kwargs["x_vector_only_mode"] = True
+
+                    # 调用音色克隆生成
+                    result = self.model.generate_voice_clone(**clone_kwargs)
+
+                    # 处理返回值 (wavs, sr)
+                    if isinstance(result, tuple) and len(result) == 2:
+                        wavs, sr = result
+                    else:
+                        wavs = result
+            except Exception as e:
+                print(f"  音色克隆失败: {e}")
                 pass
 
             if wavs is None:
-                try:
-                    # 方式2: 使用标准generate
-                    if hasattr(self.model, 'generate'):
-                        wavs, sr = self.model.generate(**generate_kwargs)
-                except Exception as e:
-                    pass
-
-            if wavs is None:
-                try:
-                    # 方式3: 最简调用
-                    wavs, sr = self.model.generate(text=text)
-                except Exception as e:
-                    raise RuntimeError(f"所有生成方式都失败: {e}")
+                raise RuntimeError(f"TTS生成失败: 无法生成音频")
 
             # 保存音频
             if isinstance(wavs, (list, tuple)):

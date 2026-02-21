@@ -185,16 +185,16 @@ class SRTHandler:
     @staticmethod
     def merge_short_entries(
         entries: List[SubtitleEntry],
-        min_duration: float = 1.5,
-        max_gap: float = 0.5,
+        min_duration: float = 0.5,
+        max_gap: float = 1.0,
     ) -> List[SubtitleEntry]:
         """
-        合并过短的字幕条目
+        合并过短的字幕条目 - 优化版本，避免将一个声音分成两个
 
         Args:
             entries: 原始字幕条目
-            min_duration: 最小时长（秒）
-            max_gap: 最大合并间隔（秒）
+            min_duration: 最小时长（秒），降低阈值避免过度合并
+            max_gap: 最大合并间隔（秒），增加阈值合并更接近的片段
 
         Returns:
             合并后的字幕条目
@@ -214,8 +214,17 @@ class SRTHandler:
             # 计算与下一个条目的间隔
             gap = next_entry.start_seconds - current.end_seconds
 
-            # 如果当前条目太短且与下一个条目间隔小，则合并
-            if current_duration < min_duration and gap <= max_gap:
+            # 判断是否应该合并：
+            # 1. 间隔很小（几乎连续）
+            # 2. 当前条目较短
+            # 3. 合并后不会太长
+            should_merge = (
+                gap <= max_gap and  # 间隔小
+                current_duration < min_duration * 2 and  # 当前条目不太长
+                (next_entry.end_seconds - current.start_seconds) < 8.0  # 合并后不超过8秒
+            )
+
+            if should_merge:
                 # 合并文本
                 current.text += " " + next_entry.text
                 if current.translated_text and next_entry.translated_text:

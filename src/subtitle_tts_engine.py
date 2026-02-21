@@ -44,7 +44,7 @@ class TTSConfig:
 
     # 音色克隆参数
     use_voice_clone: bool = True  # 启用音色克隆
-    reference_audio_padding: float = 0.2  # 参考音频前后留白（秒）
+    reference_audio_padding: float = 0.5  # 参考音频前后留白（秒），增加以获取更多音色上下文
 
     # 生成参数
     default_sample_rate: int = 24000
@@ -96,8 +96,9 @@ class AudioProcessor:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 添加padding，但确保不超出音频边界
-        actual_start = max(0, start_time - padding)
-        duration = (end_time - start_time) + padding * 2
+        # 增加padding以获取更多上下文，改善音色克隆效果
+        actual_start = max(0, start_time - padding * 2)
+        duration = (end_time - start_time) + padding * 4
 
         try:
             # 使用pydub提取片段
@@ -305,9 +306,9 @@ class SubtitleTTSEngine:
             print(f"  原始英文字幕: {len(english_entries)} 条")
             print(f"  原始中文字幕: {len(chinese_entries)} 条")
 
-            # 合并过短的字幕（少于1秒）
+            # 合并过短的字幕，优化避免将一个声音分成两个
             english_entries = SRTHandler.merge_short_entries(
-                english_entries, min_duration=1.0, max_gap=0.3
+                english_entries, min_duration=0.5, max_gap=1.0
             )
 
             # 重新同步中文字幕（如果数量变化）
@@ -317,12 +318,20 @@ class SubtitleTTSEngine:
                 # 使用中文字幕内容，但英文字幕时间
                 if len(chinese_entries) > 0:
                     chinese_texts = [e.text for e in chinese_entries]
-                    # 重新分配文本到合并后的时间轴
+                    # 重新分配文本到合并后的时间轴 - 按比例分配避免重复
                     chinese_entries = []
-                    texts_per_entry = len(chinese_texts) // len(english_entries)
+                    total_texts = len(chinese_texts)
+                    total_en = len(english_entries)
+
                     for i, en_entry in enumerate(english_entries):
-                        start_idx = i * texts_per_entry
-                        end_idx = start_idx + texts_per_entry if i < len(english_entries) - 1 else len(chinese_texts)
+                        # 计算当前条目应该分配的中文字幕范围
+                        start_idx = int(i * total_texts / total_en)
+                        end_idx = int((i + 1) * total_texts / total_en)
+
+                        # 确保不超出范围且不重复
+                        if i == total_en - 1:  # 最后一个条目包含剩余所有
+                            end_idx = total_texts
+
                         combined_text = " ".join(chinese_texts[start_idx:end_idx])
                         chinese_entries.append(SubtitleEntry(
                             index=en_entry.index,
