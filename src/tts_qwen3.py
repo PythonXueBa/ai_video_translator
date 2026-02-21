@@ -71,6 +71,7 @@ class Qwen3TTS:
     # 支持的模型列表
     SUPPORTED_MODELS = {
         "1.7B": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+        "1.6B": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",  # 别名
         "0.6B": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
     }
 

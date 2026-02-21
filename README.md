@@ -8,7 +8,7 @@
 - **人声分离** - 基于 Demucs 分离人声和背景音
 - **ASR识别** - 基于 Whisper 语音转文字/字幕
 - **机器翻译** - 基于 M2M100-1.2B 支持100种语言互译
-- **TTS合成** - 基于 Qwen3-TTS，支持音色克隆和语速调节
+- **TTS合成** - 基于 Qwen3-TTS (1.7B/0.6B)，支持音色克隆和语速调节
 - **时间范围选择** - 支持指定视频片段处理
 - **音量优化** - 自动平衡人声和背景音量
 - **完整日志系统** - 详细的处理日志记录
@@ -209,7 +209,7 @@ python video_tool.py tts text.txt -l chinese
 # 使用参考音频进行音色克隆
 python video_tool.py tts text.txt -r reference_audio.wav
 
-# 指定模型大小
+# 指定模型大小 (1.7B 或 0.6B)
 python video_tool.py tts text.txt -m 1.7B
 ```
 
@@ -296,6 +296,7 @@ python video_tool.py merge -v merged_tts.wav -b background.wav --vocals-vol 1.5 
 
 # 步骤7: 替换视频音频
 python video_tool.py replace input.mp4 -a final_dubbed_zh.wav
+# 注意: replace命令会直接修改输入视频，建议先备份
 ```
 
 ### 示例2：一键完成
@@ -383,6 +384,15 @@ A: wav, mp3, flac, m4a, ogg, aac, wma
 
 ### Q: 如何提高翻译质量？
 A: 使用更大的翻译模型（1.2B），或手动校对字幕后再合成。
+
+### Q: TTS模型如何选择？
+A: 默认使用1.7B模型（质量更好），显存不足时可切换至0.6B模型：
+```bash
+python video_tool.py tts text.txt -m 0.6B
+```
+
+### Q: replace命令会覆盖原视频吗？
+A: 是的，replace命令会直接修改输入视频。如需保留原视频，请先复制备份。
 
 ---
 
