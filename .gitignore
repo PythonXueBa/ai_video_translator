@@ -36,11 +36,11 @@ ENV/
 logs/
 *.log
 
-# Output files
-output/
-data/*.mp4
-data/*.wav
-data/*.mp3
+# Output files (允许上传示例输出)
+# output/
+# data/*.mp4
+# data/*.wav
+# data/*.mp3
 
 # Models (large files)
 models/
