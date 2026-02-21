@@ -304,7 +304,38 @@ python video_tool.py replace input.mp4 -a final_dubbed_zh.wav
 ```bash
 # 使用 dub 命令一键完成所有步骤
 python video_tool.py dub input.mp4 --source-lang en --target-lang zh
+
+# 处理视频片段（从第0秒开始，处理120秒）
+python video_tool.py dub input.mp4 --start-time 0 --duration 120 --source-lang en --target-lang zh
 ```
+
+### 实际生成示例
+
+基于 SpongeBob SquarePants 英文视频生成2分钟中文配音：
+
+```bash
+python video_tool.py dub data/SpongeBob\ SquarePants_en.mp4 \
+  --start-time 0 --duration 120 \
+  --source-lang en --target-lang zh
+```
+
+**生成结果：**
+- 输入时长：120秒（2分钟）
+- 总处理时间：约5.4分钟（Tesla T4 GPU）
+- 识别片段：24个语音片段
+- 输出文件：
+  - `SpongeBob SquarePants_en_segment_中文配音.mp4` (7.9MB)
+  - `chinese.srt` - 中文字幕
+  - `english.srt` - 英文字幕
+  - `final_dubbed_zh.wav` - 配音音频
+
+**处理流程耗时：**
+1. 人声分离：7.6秒
+2. ASR识别：6.7秒（24个片段）
+3. 翻译：26.1秒
+4. TTS合成：277.8秒（24个片段，音色克隆）
+5. 音频合并：0.4秒
+6. 视频合成：3秒
 
 ---
 
@@ -393,6 +424,19 @@ python video_tool.py tts text.txt -m 0.6B
 
 ### Q: replace命令会覆盖原视频吗？
 A: 是的，replace命令会直接修改输入视频。如需保留原视频，请先复制备份。
+
+### Q: 2分钟视频需要多久处理时间？
+A: 在 Tesla T4 GPU 上约需5-6分钟，具体时间取决于：
+- 语音片段数量（2分钟视频约20-30个片段）
+- TTS模型大小（1.7B比0.6B慢但质量更好）
+- 是否启用音色克隆
+
+### Q: 生成的字幕可以编辑吗？
+A: 可以，所有生成的字幕都保存为SRT格式，可用任何文本编辑器修改：
+```bash
+# 编辑中文字幕后重新合成
+python video_tool.py tts chinese.srt -r vocals.wav -l chinese
+```
 
 ---
 
