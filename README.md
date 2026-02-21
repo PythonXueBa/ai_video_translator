@@ -12,9 +12,11 @@
 - **人声分离** - 基于 Demucs，分离人声和背景音
 - **ASR 语音识别** - 基于 Whisper，支持多语言
 - **机器翻译** - 基于 M2M100，离线翻译
-- **TTS 语音合成** - 基于 Qwen3-TTS，支持音色克隆
+- **TTS 语音合成** - 基于 Qwen3-TTS，支持音色克隆，保持自然语速和情绪
 - **智能资源管理** - 自动检测 GPU 显存，动态优化配置
 - **时间轴对齐** - 精确的时间戳同步，确保配音与原视频同步
+- **时间范围选择** - 支持指定视频片段进行配音转换
+- **音量自动优化** - 人声音量增强，背景音量自动平衡
 
 ---
 
@@ -158,8 +160,8 @@ python video_tool.py merge -v vocals.wav -b background.wav --vocals-vol 1.2 --ba
 | `-v, --vocals` | 人声文件 | 必填 |
 | `-b, --background` | 背景文件 | 必填 |
 | `-o, --output` | 输出文件路径 | final_dubbed_zh.wav |
-| `--vocals-vol` | 人声音量倍数 | 1.0 |
-| `--background-vol` | 背景音量倍数 | 0.8 |
+| `--vocals-vol` | 人声音量倍数 | 1.5 |
+| `--background-vol` | 背景音量倍数 | 0.6 |
 
 ### 7. 替换视频音频 `replace`
 
@@ -187,8 +189,21 @@ python video_tool.py silent video.mp4 -o silent.mp4
 完整的英文→中文配音流程。
 
 ```bash
+# 完整视频配音
 python video_tool.py dub data/SpongeBob SquarePants_en.mp4
+
+# 指定时间范围（从第10秒开始，处理20秒）
+python video_tool.py dub data/SpongeBob SquarePants_en.mp4 --start-time 10 --duration 20
+
+# 只处理前10秒用于测试
+python video_tool.py dub --start-time 0 --duration 10
 ```
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `input` | 输入视频文件 | data/SpongeBob SquarePants_en.mp4 |
+| `--start-time` | 开始时间（秒） | 0 |
+| `--duration` | 处理时长（秒） | 0（完整视频） |
 
 ---
 
@@ -196,6 +211,13 @@ python video_tool.py dub data/SpongeBob SquarePants_en.mp4
 
 ```
 视频输入
+    │
+    ▼
+┌─────────────────────────┐
+│ 0. 视频切割 (FFmpeg)    │
+│    支持指定时间范围     │
+│    输出: segment.mp4    │
+└─────────────────────────┘
     │
     ▼
 ┌─────────────────────────┐
@@ -221,13 +243,15 @@ python video_tool.py dub data/SpongeBob SquarePants_en.mp4
     ▼
 ┌─────────────────────────┐
 │ 4. TTS合成 (Qwen3-TTS)  │
-│    音色克隆 + 时间轴对齐 │
+│    音色克隆 + 自然语速  │
+│    保持完整情绪音色     │
 │    输出: tts_*.wav      │
 └─────────────────────────┘
     │
     ▼
 ┌─────────────────────────┐
 │ 5. 音频处理 + 视频合成  │
+│    人声增强+背景平衡    │
 │    输出: 中文配音.mp4   │
 └─────────────────────────┘
 ```

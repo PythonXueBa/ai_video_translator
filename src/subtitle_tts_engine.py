@@ -32,14 +32,14 @@ from .tts_qwen3 import Qwen3TTS, get_qwen3_tts, clear_gpu_memory, get_gpu_memory
 @dataclass
 class TTSConfig:
     """TTS配置参数"""
-    # 语速调节参数
-    speed_adjustment: bool = True  # 启用语速调节
-    target_duration_tolerance: float = 0.1  # 目标时长容差（秒）
+    # 语速调节参数 - 默认禁用，保持原始克隆音色和语速
+    speed_adjustment: bool = False  # 禁用语速调节，保持自然语速
+    target_duration_tolerance: float = 0.5  # 目标时长容差（秒）
     max_speed_ratio: float = 1.5  # 最大加速比例
     min_speed_ratio: float = 0.7  # 最大减速比例
 
-    # 音频后处理参数
-    enable_stretching: bool = True  # 启用音频拉伸/压缩
+    # 音频后处理参数 - 禁用拉伸，保持自然音色
+    enable_stretching: bool = False  # 禁用音频拉伸/压缩
     stretching_threshold: float = 0.3  # 拉伸阈值（差异超过此值才拉伸）
 
     # 音色克隆参数
@@ -464,7 +464,7 @@ class SubtitleTTSEngine:
         max_retries: int = 3,
     ) -> bool:
         """
-        带时长控制的语音合成
+        语音合成 - 保持自然语速和完整情绪音色
 
         Args:
             task: TTS任务
@@ -483,69 +483,31 @@ class SubtitleTTSEngine:
             task.success = True
             return True
 
-        # 计算需要的语速比例
-        speed_ratio = self._calculate_speed_ratio(
-            task.chinese_text, task.target_duration, language
-        )
-        task.speed_ratio = speed_ratio
-
-        # 准备生成参数
+        # 准备生成参数 - 使用原始参考音频，保持自然语速
         ref_audio = task.reference_audio_path
         if not ref_audio or not ref_audio.exists():
             ref_audio = None
 
+        # 不使用语速调节，保持speed_ratio=1.0（自然语速）
+        task.speed_ratio = 1.0
+
         for attempt in range(max_retries):
             try:
-                # 根据语速比例调整文本（添加语速标记）
-                text_to_synthesize = self._apply_speed_control(
-                    task.chinese_text, speed_ratio
-                )
+                # 直接使用原始文本，不添加语速控制标记
+                text_to_synthesize = task.chinese_text
 
-                # 动态调整语速比例（基于重试次数）
-                current_speed_ratio = speed_ratio * (1.0 + attempt * 0.05)
-                current_speed_ratio = np.clip(
-                    current_speed_ratio,
-                    self.config.min_speed_ratio,
-                    self.config.max_speed_ratio,
-                )
-
-                # 生成音频
+                # 生成音频 - 不调节语速，保持自然音色
                 self.tts.synthesize(
                     text=text_to_synthesize,
                     reference_audio=ref_audio,
                     output_path=task.output_path,
                     language=language,
-                    speed_ratio=current_speed_ratio,
+                    speed_ratio=1.0,  # 自然语速
                 )
 
                 # 检查生成时长
                 generated_audio, sr = sf.read(str(task.output_path), dtype="float32")
                 task.generated_duration = len(generated_audio) / sr
-
-                # 计算时长差异
-                duration_diff = abs(task.generated_duration - task.target_duration)
-                duration_ratio = task.generated_duration / task.target_duration
-
-                # 如果时长差异在容差范围内，成功
-                if duration_diff <= self.config.target_duration_tolerance:
-                    task.success = True
-                    return True
-
-                # 如果需要，进行音频拉伸/压缩
-                if self.config.enable_stretching and duration_diff > self.config.stretching_threshold:
-                    temp_path = task.output_path.parent / f"temp_{task.index}.wav"
-                    self.audio_processor.stretch_audio(
-                        task.output_path,
-                        temp_path,
-                        task.target_duration,
-                    )
-                    # 替换原文件
-                    import shutil
-                    shutil.move(str(temp_path), str(task.output_path))
-
-                    # 重新检查时长
-                    adjusted_audio, sr = sf.read(str(task.output_path), dtype="float32")
-                    task.generated_duration = len(adjusted_audio) / sr
 
                 task.success = True
                 return True
@@ -553,8 +515,6 @@ class SubtitleTTSEngine:
             except Exception as e:
                 print(f"  尝试 {attempt + 1}/{max_retries} 失败: {e}")
                 if attempt < max_retries - 1:
-                    # 调整语速比例重试
-                    speed_ratio = 1.0 + (attempt * 0.1)
                     clear_gpu_memory()
                 else:
                     task.error_message = str(e)
@@ -569,26 +529,18 @@ class SubtitleTTSEngine:
 
     def _apply_speed_control(self, text: str, speed_ratio: float) -> str:
         """
-        应用语速控制（通过文本标记）
+        应用语速控制（通过文本标记）- 当前禁用，保持自然语速
 
         Args:
             text: 原始文本
             speed_ratio: 语速比例
 
         Returns:
-            带语速标记的文本
+            原始文本（不添加语速标记）
         """
-        # Qwen3-TTS可能支持的语速标记
-        # 注意：实际支持的标记需要根据Qwen3-TTS文档确认
-
-        if speed_ratio > 1.2:
-            # 加速
-            return f"<speed=fast>{text}</speed>"
-        elif speed_ratio < 0.8:
-            # 减速
-            return f"<speed=slow>{text}</speed>"
-        else:
-            return text
+        # 禁用语速控制，直接返回原始文本
+        # 保持克隆后的完整情绪音色和自然语速
+        return text
 
     def process_tasks(
         self,
@@ -597,7 +549,7 @@ class SubtitleTTSEngine:
         show_progress: bool = True,
     ) -> List[SubtitleTTSTask]:
         """
-        处理所有TTS任务
+        处理所有TTS任务 - 保持自然语速和完整情绪音色
 
         Args:
             tasks: 任务列表
@@ -612,15 +564,14 @@ class SubtitleTTSEngine:
 
         print(f"\n开始处理 {total} 个TTS任务...")
         print(f"设备: {self.tts.device}")
-        print(f"语速调节: {'启用' if self.config.speed_adjustment else '禁用'}")
-        print(f"音频拉伸: {'启用' if self.config.enable_stretching else '禁用'}")
+        print(f"音色克隆: {'启用' if self.config.use_voice_clone else '禁用'}")
+        print(f"语速调节: 禁用（保持自然语速）")
 
         for i, task in enumerate(tasks):
             if show_progress:
                 print(f"\n[{i+1}/{total}] 片段 {task.index}")
                 print(f"  中文: {task.chinese_text[:50]}...")
-                print(f"  目标时长: {task.target_duration:.2f}s")
-                print(f"  语速比例: {task.speed_ratio:.2f}x")
+                print(f"  参考时长: {task.target_duration:.2f}s")
 
             # 处理任务
             success = self._synthesize_with_duration_control(task, language)
@@ -628,10 +579,7 @@ class SubtitleTTSEngine:
             if success:
                 success_count += 1
                 if show_progress:
-                    print(f"  ✓ 生成时长: {task.generated_duration:.2f}s")
-                    diff = task.generated_duration - task.target_duration
-                    if abs(diff) > 0.1:
-                        print(f"  ⚠ 时长差异: {diff:+.2f}s")
+                    print(f"  ✓ 生成时长: {task.generated_duration:.2f}s (自然语速)")
             else:
                 if show_progress:
                     print(f"  ✗ 失败: {task.error_message}")
@@ -646,24 +594,10 @@ class SubtitleTTSEngine:
 
         total_target = sum(t.target_duration for t in tasks)
         total_generated = sum(t.generated_duration for t in tasks)
-        total_diff = total_generated - total_target
 
-        print(f"目标总时长: {total_target:.2f}s")
+        print(f"参考总时长: {total_target:.2f}s")
         print(f"生成总时长: {total_generated:.2f}s")
-        print(f"总差异: {total_diff:+.2f}s ({total_diff/total_target*100:+.1f}%)")
-
-        # 统计时长匹配情况
-        within_tolerance = sum(
-            1 for t in tasks
-            if abs(t.generated_duration - t.target_duration) <= self.config.target_duration_tolerance
-        )
-        print(f"时长匹配: {within_tolerance}/{total} ({within_tolerance/total*100:.1f}%)")
-
-        # 统计语速分布
-        speed_ratios = [t.speed_ratio for t in tasks if t.speed_ratio != 1.0]
-        if speed_ratios:
-            print(f"语速调节: 平均 {sum(speed_ratios)/len(speed_ratios):.2f}x")
-            print(f"  范围: {min(speed_ratios):.2f}x - {max(speed_ratios):.2f}x")
+        print(f"语速: 自然语速（保持克隆音色）")
 
         return tasks
 

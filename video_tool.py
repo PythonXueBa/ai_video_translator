@@ -641,6 +641,42 @@ def cmd_dub(args):
         print(f"✗ 视频文件不存在: {input_video}")
         return 1
 
+    # 处理时间范围参数
+    start_time = args.start_time
+    duration = args.duration
+
+    # 如果需要切割视频
+    if start_time > 0 or duration > 0:
+        print(f"\n[预处理] 切割视频片段...")
+        print(f"  开始时间: {start_time:.1f}s")
+        if duration > 0:
+            print(f"  时长: {duration:.1f}s")
+
+        # 使用ffmpeg切割视频
+        segment_video = OUTPUT_DIR / f"{input_video.stem}_segment.mp4"
+        if duration > 0:
+            cmd = [
+                "ffmpeg", "-y", "-i", str(input_video),
+                "-ss", str(start_time), "-t", str(duration),
+                "-c:v", "copy", "-c:a", "copy",
+                str(segment_video)
+            ]
+        else:
+            cmd = [
+                "ffmpeg", "-y", "-i", str(input_video),
+                "-ss", str(start_time),
+                "-c:v", "copy", "-c:a", "copy",
+                str(segment_video)
+            ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"✗ 视频切割失败: {result.stderr}")
+            return 1
+
+        print(f"  ✓ 视频片段已保存: {segment_video}")
+        input_video = segment_video
+
     output_dir = OUTPUT_DIR / f"{input_video.stem}_zh_dubbed"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -928,8 +964,8 @@ def cmd_dub(args):
         merged_tts_path,  # 使用已时间轴对齐的TTS音频
         background_path,
         final_audio,
-        vocals_volume=1.0,
-        background_volume=0.8,
+        vocals_volume=1.5,  # 提高人声音量
+        background_volume=0.6,  # 降低背景音量
     )
     
     # 检查合并后音频长度
@@ -1082,6 +1118,18 @@ def main():
         "--no-voice-clone",
         action="store_true",
         help="禁用音色克隆",
+    )
+    dub_parser.add_argument(
+        "--start-time",
+        type=float,
+        default=0.0,
+        help="开始时间（秒，默认0）",
+    )
+    dub_parser.add_argument(
+        "--duration",
+        type=float,
+        default=0.0,
+        help="转换时长（秒，默认0表示转换全部）",
     )
     dub_parser.set_defaults(func=cmd_dub)
 
