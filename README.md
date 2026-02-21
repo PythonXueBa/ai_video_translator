@@ -1,17 +1,18 @@
 # AI Video Translator
 
-基于 Qwen3-TTS 的高质量英文→中文 AI 视频翻译与配音解决方案
+基于 Qwen3-TTS 的高质量多语言 AI 视频翻译与配音解决方案
 
-**支持平台**: Windows | Linux | macOS | Android/Termux
+**支持平台**: Windows | Linux | macOS
 
 ---
 
 ## 功能特性
 
+- **多语言翻译** - 支持 18 种语言互译（中/英/日/韩/法/德/西/俄/葡/意/阿/印/越/泰/印尼等）
 - **视频转音频** - 支持多种格式 (MP3, WAV, M4A, OGG)
 - **人声分离** - 基于 Demucs，分离人声和背景音
 - **ASR 语音识别** - 基于 Whisper，支持多语言
-- **机器翻译** - 基于 M2M100，离线翻译
+- **机器翻译** - 基于 M2M100-1.2B，离线高质量翻译
 - **TTS 语音合成** - 基于 Qwen3-TTS，支持音色克隆，保持自然语速和情绪
 - **智能资源管理** - 自动检测 GPU 显存，动态优化配置
 - **时间轴对齐** - 精确的时间戳同步，确保配音与原视频同步
@@ -22,188 +23,97 @@
 
 ## 快速开始
 
-### 1. 安装依赖
+### Windows 用户（推荐）
+
+下载离线安装包，双击运行即可，无需安装 Python 或其他依赖。
+
+### 从源码安装
 
 ```bash
+# 1. 克隆仓库
+git clone https://github.com/PythonXueBa/ai_video_translator.git
+cd ai_video_translator
+
+# 2. 安装依赖
 pip install -r requirements.txt
-```
 
-### 2. 查看功能
-
-```bash
-python video_tool.py --help
-```
-
-### 3. 测试模块
-
-```bash
-python video_tool.py test
-```
-
-### 4. AI 配音
-
-```bash
-python video_tool.py dub data/SpongeBob SquarePants_en.mp4
+# 3. 安装 TTS 库
+pip install qwen-tts
 ```
 
 ---
 
-## Demo 示例
+## 使用方法
 
-### 前后对比视频
+### 基本用法
 
-| 原始视频 (英文) | 翻译后视频 (中文配音) |
-|----------------|----------------------|
-| [SpongeBob SquarePants_en.mp4](data/SpongeBob SquarePants_en.mp4) | [SpongeBob SquarePants_中文配音.mp4](output/SpongeBob SquarePants_zh_dubbed/SpongeBob SquarePants_中文配音.mp4) |
+```bash
+# 英文转中文（默认）
+python video_tool.py dub
 
-**原始视频**: 海绵宝宝英文视频  
-**处理后**: 完整中文AI配音，保留原始画面和背景音
+# 指定视频文件
+python video_tool.py dub video.mp4
+
+# 指定时间范围（从第10秒开始，处理30秒）
+python video_tool.py dub video.mp4 --start-time 10 --duration 30
+```
+
+### 多语言翻译
+
+```bash
+# 日文转中文
+python video_tool.py dub japanese_video.mp4 --source-lang ja --target-lang zh
+
+# 英文转西班牙文
+python video_tool.py dub video.mp4 --target-lang es
+
+# 中文转英文
+python video_tool.py dub chinese_video.mp4 --source-lang zh --target-lang en
+```
+
+### 高级选项
+
+```bash
+# 禁用音色克隆（使用默认音色）
+python video_tool.py dub video.mp4 --no-voice-clone
+
+# 禁用语速调节
+python video_tool.py dub video.mp4 --no-speed-adjust
+
+# 完整示例
+python video_tool.py dub video.mp4 --source-lang en --target-lang zh --start-time 0 --duration 60
+```
 
 ---
 
 ## 命令详解
 
-### 1. 视频转音频 `convert`
+### AI 配音 `dub`
 
-将视频文件转换为音频文件。
-
-```bash
-python video_tool.py convert video.mp4 -o audio.mp3 -f mp3 -q 320k
-```
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `input` | 输入视频文件 | 必填 |
-| `-o, --output` | 输出文件路径 | 自动生成 |
-| `-f, --format` | 输出格式 (wav/mp3/m4a/ogg) | wav |
-| `-q, --quality` | 音频质量 (如 320k) | - |
-| `-r, --sample-rate` | 采样率 | 44100 |
-| `-c, --channels` | 声道数 | 2 |
-
-### 2. 人声分离 `separate`
-
-将音频分离为人声和背景音。
-
-```bash
-python video_tool.py separate video.mp4 --device cuda
-```
-
-| 参数 | 说明 |
-|------|------|
-| `input` | 输入文件 (视频或音频) |
-| `--device` | 计算设备 (cuda/cpu) |
-
-### 3. ASR语音识别 `asr`
-
-将语音识别为文字并生成字幕。
-
-```bash
-python video_tool.py asr video.mp4 -m small -l en
-```
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `input` | 输入视频/音频文件 | 必填 |
-| `-m, --model` | 模型大小 (tiny/base/small/medium/large) | small |
-| `-l, --language` | 语言代码 | en |
-| `--device` | 计算设备 (cuda/cpu) | 自动 |
-
-### 4. 翻译 `translate`
-
-翻译文本或字幕文件。
-
-```bash
-python video_tool.py translate input.srt -s en -t zh
-```
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `input` | 输入文件 (.txt/.srt) | 必填 |
-| `-s, --source` | 源语言 | en |
-| `-t, --target` | 目标语言 | zh |
-| `-m, --model` | 模型大小 | base |
-| `--device` | 计算设备 (cuda/cpu) | 自动 |
-
-### 5. TTS语音合成 `tts`
-
-将文本合成为语音。
-
-```bash
-python video_tool.py tts text.txt -l chinese -r reference.wav
-```
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `input` | 输入文件 (.txt/.srt) | 必填 |
-| `-l, --language` | 语言 | chinese |
-| `-m, --model` | 模型大小 (0.6B/1.7B) | 0.6B |
-| `-r, --reference` | 参考音频(音色克隆) | - |
-| `--device` | 计算设备 (cuda/cpu) | 自动 |
-
-### 6. 合并音频 `merge`
-
-将人声和背景音合并，生成最终配音音频。
-
-```bash
-# 使用默认输出文件名 (final_dubbed_zh.wav)
-python video_tool.py merge -v vocals.wav -b background.wav
-
-# 指定输出文件名
-python video_tool.py merge -v vocals.wav -b background.wav -o final_dubbed_zh.wav
-
-# 调整音量
-python video_tool.py merge -v vocals.wav -b background.wav --vocals-vol 1.2 --background-vol 0.8
-```
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `-v, --vocals` | 人声文件 | 必填 |
-| `-b, --background` | 背景文件 | 必填 |
-| `-o, --output` | 输出文件路径 | final_dubbed_zh.wav |
-| `--vocals-vol` | 人声音量倍数 | 1.5 |
-| `--background-vol` | 背景音量倍数 | 0.6 |
-
-### 7. 替换视频音频 `replace`
-
-替换视频中的音轨。
-
-```bash
-python video_tool.py replace video.mp4 -a new_audio.wav
-```
-
-### 8. 生成静音视频 `silent`
-
-移除视频中的音频，生成静音视频。
-
-```bash
-python video_tool.py silent video.mp4 -o silent.mp4
-```
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `input` | 输入视频文件 | 必填 |
-| `-o, --output` | 输出文件路径 | 自动生成 |
-
-### 9. AI 配音 `dub`
-
-完整的英文→中文配音流程。
-
-```bash
-# 完整视频配音
-python video_tool.py dub data/SpongeBob SquarePants_en.mp4
-
-# 指定时间范围（从第10秒开始，处理20秒）
-python video_tool.py dub data/SpongeBob SquarePants_en.mp4 --start-time 10 --duration 20
-
-# 只处理前10秒用于测试
-python video_tool.py dub --start-time 0 --duration 10
-```
+完整的视频翻译配音流程。
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | `input` | 输入视频文件 | data/SpongeBob SquarePants_en.mp4 |
+| `--source-lang` | 源语言代码 | en |
+| `--target-lang` | 目标语言代码 | zh |
 | `--start-time` | 开始时间（秒） | 0 |
 | `--duration` | 处理时长（秒） | 0（完整视频） |
+| `--no-voice-clone` | 禁用音色克隆 | - |
+| `--no-speed-adjust` | 禁用语速调节 | - |
+
+### 支持的语言代码
+
+| 代码 | 语言 | 代码 | 语言 |
+|------|------|------|------|
+| zh | 中文 | en | 英文 |
+| ja | 日文 | ko | 韩文 |
+| es | 西班牙文 | fr | 法文 |
+| de | 德文 | ru | 俄文 |
+| pt | 葡萄牙文 | it | 意大利文 |
+| ar | 阿拉伯文 | hi | 印地文 |
+| vi | 越南文 | th | 泰文 |
+| id | 印尼文 | - | - |
 
 ---
 
@@ -229,15 +139,15 @@ python video_tool.py dub --start-time 0 --duration 10
     ▼
 ┌─────────────────────────┐
 │ 2. ASR识别 (Whisper)    │
-│    英文语音转文字       │
-│    输出: english.srt    │
+│    语音转文字           │
+│    输出: source.srt     │
 └─────────────────────────┘
     │
     ▼
 ┌─────────────────────────┐
-│ 3. 翻译 (M2M100)        │
-│    en → zh              │
-│    输出: chinese.srt    │
+│ 3. 翻译 (M2M100-1.2B)   │
+│    高质量离线翻译       │
+│    输出: target.srt     │
 └─────────────────────────┘
     │
     ▼
@@ -252,7 +162,7 @@ python video_tool.py dub --start-time 0 --duration 10
 ┌─────────────────────────┐
 │ 5. 音频处理 + 视频合成  │
 │    人声增强+背景平衡    │
-│    输出: 中文配音.mp4   │
+│    输出: 配音视频.mp4   │
 └─────────────────────────┘
 ```
 
@@ -264,12 +174,12 @@ python video_tool.py dub --start-time 0 --duration 10
 
 ```
 output/视频名_zh_dubbed/
-├── 视频名_中文配音.mp4    # 最终中文配音视频
-├── 视频名_silent.mp4     # 静音视频（可用于其他音频合成）
+├── 视频名_中文配音.mp4    # 最终配音视频
+├── 视频名_silent.mp4     # 静音视频
 ├── chinese.srt            # 中文字幕文件
 ├── english.srt            # 英文字幕文件
-├── final_dubbed_zh.wav    # 最终配音音频（人声+背景音）
-├── merged_tts.wav         # TTS音频（时间轴对齐）
+├── final_dubbed_zh.wav    # 最终配音音频
+├── merged_tts.wav         # TTS音频
 ├── extracted.wav          # 提取的原始音频
 ├── separated/
 │   ├── vocals.wav         # 分离的人声
@@ -280,141 +190,53 @@ output/视频名_zh_dubbed/
 
 ---
 
-## 前后对比示例
-
-### 原始视频
-- 视频: `SpongeBob SquarePants_en.mp4`
-- 音频: 英文原声
-- 内容: 海绵宝宝动画片段
-
-### 处理后输出
-- 视频: `SpongeBob SquarePants_中文配音.mp4`
-- 音频: 中文AI配音（保留原视频画面）
-- 内容: 完整中文配音版本
-
-### 音频处理详情
-
-| 文件 | 说明 | 状态 |
-|------|------|------|
-| `extracted.wav` | 提取的原始英文音频 | ✓ 已生成 |
-| `merged_tts.wav` | TTS中文配音（时间轴对齐） | ✓ 已生成 |
-| `final_dubbed_zh.wav` | 合成后的配音+背景音 | ✓ 已生成 |
-
-### 单独使用各功能示例
-
-```bash
-# 假设输入视频为 data/SpongeBob SquarePants_en.mp4
-
-# 步骤1: 提取音频
-python video_tool.py convert data/SpongeBob SquarePants_en.mp4 -o output/extracted.wav
-
-# 步骤2: 人声分离（输出到 separated/ 子目录）
-python video_tool.py separate data/SpongeBob SquarePants_en.mp4
-
-# 步骤3: 语音识别（基于人声）
-python video_tool.py asr output/SpongeBob SquarePants_separated/separated/vocals.wav -l en
-
-# 步骤4: 翻译（英文 -> 中文）
-python video_tool.py translate output/SpongeBob SquarePants_separated_asr/SpongeBob SquarePants_separated.srt -s en -t zh
-
-# 步骤5: TTS合成（带音色克隆）
-python video_tool.py tts output/translated/SpongeBob SquarePants_separated_zh.srt -l chinese -r output/SpongeBob SquarePants_separated/separated/vocals.wav
-
-# 步骤6: 合并音频（TTS人声 + 背景音）
-python video_tool.py merge -v output/tts_output/merged_tts.wav -b output/SpongeBob SquarePants_separated/separated/background.wav
-
-# 步骤7: 生成静音视频（移除原视频音轨）
-python video_tool.py silent data/SpongeBob SquarePants_en.mp4 -o output/SpongeBob SquarePants_silent.mp4
-
-# 步骤8: 替换视频音频（将配音音频合成到静音视频）
-python video_tool.py replace output/SpongeBob SquarePants_silent.mp4 -a output/final_dubbed_zh.wav
-```
-
----
-
-## 项目结构
-
-```
-ai_video_translator/
-├── video_tool.py          # 主脚本 (统一入口)
-├── diagnose.py            # 系统诊断脚本
-├── README.md              # 项目说明
-├── requirements.txt       # 依赖列表
-├── .gitignore             # Git 忽略规则
-├── data/                  # 输入视频目录
-│   └── (放置视频文件)
-├── output/                # 输出目录
-├── logs/                  # 日志目录
-└── src/                   # 核心模块
-    ├── __init__.py
-    ├── config.py          # 配置管理
-    ├── analyzer.py        # 媒体分析
-    ├── extractor.py       # 音频提取
-    ├── separator.py       # 人声分离
-    ├── asr_module.py      # ASR 识别
-    ├── translator_m2m100.py # 翻译模块
-    ├── tts_qwen3.py       # TTS 合成
-    ├── subtitle_handler.py # 字幕处理
-    ├── merger.py          # 音频合并
-    ├── video_processor.py # 视频合成
-    ├── performance_config.py # 性能配置
-    ├── memory_manager.py  # 显存管理
-    ├── model_manager.py   # 模型管理
-    └── splitter.py        # 音频分割
-```
-
----
-
 ## 系统要求
 
 | 项目 | 最低要求 | 推荐配置 |
 |------|----------|----------|
+| 操作系统 | Windows 10+ / Linux / macOS | Windows 11 / Ubuntu 22.04 |
 | Python | 3.8+ | 3.10+ |
 | FFmpeg | 4.0+ | 5.0+ |
-| 磁盘空间 | 10GB+ | 20GB+ |
+| 磁盘空间 | 15GB+ | 30GB+ |
 | 内存 | 8GB | 16GB+ |
-| GPU 显存 | 4GB | 8GB+ |
+| GPU 显存 | 6GB | 12GB+ |
 
 ---
 
-## 性能配置
+## 模型规格
 
-系统会自动检测硬件并优化配置：
+| 组件 | 模型 | 规格 | 显存需求 |
+|------|------|------|----------|
+| ASR | Whisper | base / small | 1GB |
+| 翻译 | M2M100 | 1.2B | 4-6GB |
+| TTS | Qwen3-TTS | 1.7B | 4-6GB |
+| 人声分离 | Demucs | htdemucs | 2-3GB |
 
-- **GPU 检测**: 自动识别 CUDA / Apple Silicon
-- **显存管理**: 动态监控显存，自动降级到 CPU
-- **模型选择**: 根据显存大小选择合适的模型
-- **并行优化**: GPU 模式强制串行避免冲突
+**总计**: 约 12-16GB 显存（可自动降级到 CPU）
 
-### 模型规格
+---
 
-| 组件 | 模型 | 规格 |
-|------|------|------|
-| ASR | Whisper | small / medium |
-| 翻译 | M2M100 | 418M |
-| TTS | Qwen3-TTS | 0.6B / 1.7B |
-| 人声分离 | Demucs | htdemucs |
+## 离线安装包制作
 
-## 依赖说明
+### Windows 离线包
 
-核心依赖：
-
-- **torch** - 深度学习框架
-- **transformers** - Hugging Face 模型库
-- **openai-whisper** - 语音识别
-- **demucs** - 人声分离
-- **soundfile** - 音频读写
-- **pydub** - 音频处理
-
-安装 TTS 库：
+使用 PyInstaller 打包：
 
 ```bash
-# 方式1: Qwen3-TTS (推荐)
-pip install qwen-tts
+# 安装打包工具
+pip install pyinstaller
 
-# 方式2: Coqui TTS (可选)
-pip install TTS
+# 创建 spec 文件并打包
+pyinstaller --name="AI_Video_Translator" \
+    --onefile \
+    --windowed \
+    --add-data "src;src" \
+    --hidden-import=torch \
+    --hidden-import=transformers \
+    video_tool.py
 ```
+
+打包后的可执行文件位于 `dist/AI_Video_Translator.exe`
 
 ---
 
@@ -422,3 +244,9 @@ pip install TTS
 
 MIT License
 
+---
+
+## 问题反馈
+
+如有问题，请在 GitHub Issues 中提交：
+https://github.com/PythonXueBa/ai_video_translator/issues
