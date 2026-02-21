@@ -1,0 +1,30 @@
+# AI Video Translator - 核心依赖
+# 安装: pip install -r requirements.txt
+
+# 核心框架
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# 音频处理
+soundfile>=0.12.0
+librosa>=0.10.0
+pydub>=0.25.0
+
+# 科学计算
+numpy>=1.24.0
+scipy>=1.10.0
+
+# AI模型
+openai-whisper>=20231117
+transformers>=4.30.0
+sentencepiece>=0.1.99
+sacremoses>=0.0.53
+demucs>=4.0.0
+einops>=0.6.1
+
+# 工具
+psutil>=5.9.0
+tqdm>=4.65.0
+
+# TTS需单独安装: pip install qwen-tts
+# FFmpeg需系统安装: apt-get install ffmpeg 或 brew install ffmpeg
