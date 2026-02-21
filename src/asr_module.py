@@ -19,7 +19,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent / "asr"))
 import whisper
 import torch
 
-from .splitter import AudioSegment
+
+@dataclass
+class AudioSegment:
+    """音频片段信息（简化版，替代已删除的splitter模块）"""
+    index: int
+    start_time: float
+    end_time: float
+    duration: float
+    text: str = ""
+    translated_text: str = ""
+    audio_path: Optional[Path] = None
 
 # 尝试导入性能配置
 try:
